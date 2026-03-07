@@ -354,12 +354,15 @@ export default function App() {
 
   // Fetch escalation count on load
   useEffect(() => {
-    fetch("/api/notion?action=escalations")
-      .then(r => r.json())
-      .then(d => setEscalationCount(d.results?.length || 0))
-      .catch(() => {})
-  }, [])
-
+  fetch("/api/notion?action=escalations")
+    .then(r => r.json())
+    .then(d => {
+      if (d && Array.isArray(d.results)) {
+        setEscalationCount(d.results.length)
+      }
+    })
+    .catch(() => {})
+}, [])
   const handleEscalate = async (operative) => {
     const lastMsg = "Escalation from " + operative.name
     await fetch("/api/notion?action=escalate", {
