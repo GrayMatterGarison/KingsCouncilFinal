@@ -364,14 +364,15 @@ export default function App() {
     .catch(() => {})
 }, [])
   const handleEscalate = async (operative) => {
-    const lastMsg = "Escalation from " + operative.name
+  try {
     await fetch("/api/notion?action=escalate", {
       method: "POST",
       headers: { "Content-Type":"application/json" },
-      body: JSON.stringify({ title: lastMsg, operative: operative.name, details: "" })
+      body: JSON.stringify({ title: "Escalation from " + operative.name, operative: operative.name, details: "" })
     })
     setEscalationCount(c => c + 1)
-  }
+  } catch {}
+}
 
   const sections = {
     strategic:{ members:ROSTER.strategic, label:"STRATEGIC COUNCIL", ac:T.gold },
