@@ -22,6 +22,107 @@ const GREEN  = "#60C890"
 
 const mono = { fontFamily: "'Courier New', monospace" }
 
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+
+const TOKEN_KEY = "kc_token"
+
+function getToken() { return localStorage.getItem(TOKEN_KEY) }
+
+async function authFetch(url, opts = {}) {
+  const token = getToken()
+  return fetch(url, {
+    ...opts,
+    headers: {
+      ...(opts.headers || {}),
+      "Content-Type": "application/json",
+      ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+    },
+  })
+}
+
+// ─── LOGIN SCREEN ─────────────────────────────────────────────────────────────
+
+function LoginScreen({ onAuth }) {
+  const [pw, setPw]       = useState("")
+  const [err, setErr]     = useState("")
+  const [loading, setLoading] = useState(false)
+
+  const submit = async () => {
+    if (!pw.trim()) return
+    setLoading(true)
+    setErr("")
+    try {
+      const res  = await fetch("/api/auth", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ password: pw }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setErr(data.error || "Incorrect password"); setLoading(false); return }
+      localStorage.setItem(TOKEN_KEY, data.token)
+      onAuth()
+    } catch {
+      setErr("Connection error. Try again.")
+      setLoading(false)
+    }
+  }
+
+  const onKey = (e) => { if (e.key === "Enter") submit() }
+
+  return (
+    <div style={{ height:"100vh", background:"#060606", display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <style>{`* { box-sizing:border-box; margin:0; padding:0; } body { background:#060606; }`}</style>
+      <div style={{ width:340, textAlign:"center" }}>
+        {/* Crown */}
+        <div style={{ fontSize:48, marginBottom:16, filter:"drop-shadow(0 0 24px rgba(212,151,12,0.7))" }}>♛</div>
+        <div style={{ fontFamily:"'Courier New',monospace", fontWeight:700, fontSize:13, color:"#D4970C", letterSpacing:"0.3em", marginBottom:4 }}>KINGDOM INTELLIGENCE</div>
+        <div style={{ fontFamily:"'Courier New',monospace", fontSize:9, color:"#6A6258", letterSpacing:"0.2em", marginBottom:32 }}>RESTRICTED ACCESS · SOVEREIGN ONLY</div>
+
+        {/* Input */}
+        <input
+          type="password"
+          value={pw}
+          onChange={e => { setPw(e.target.value); setErr("") }}
+          onKeyDown={onKey}
+          placeholder="ENTER PASSPHRASE"
+          autoFocus
+          style={{
+            width:"100%", padding:"12px 16px",
+            background:"#0E0E0E", border:`1px solid ${err ? "#8B1A1A" : "#5A4418"}`,
+            borderRadius:3, color:"#F2ECD8",
+            fontFamily:"'Courier New',monospace", fontSize:12,
+            letterSpacing:"0.15em", outline:"none",
+            marginBottom: err ? 8 : 16,
+          }}
+        />
+
+        {err && (
+          <div style={{ fontFamily:"'Courier New',monospace", fontSize:9, color:"#E02020", letterSpacing:"0.1em", marginBottom:12 }}>
+            ✕ {err.toUpperCase()}
+          </div>
+        )}
+
+        <button
+          onClick={submit}
+          disabled={loading || !pw.trim()}
+          style={{
+            width:"100%", padding:"11px",
+            background: loading || !pw.trim() ? "rgba(212,151,12,0.1)" : "rgba(212,151,12,0.15)",
+            border:`1px solid ${loading || !pw.trim() ? "#5A4418" : "#D4970C"}`,
+            borderRadius:3, color: loading || !pw.trim() ? "#6A6258" : "#D4970C",
+            fontFamily:"'Courier New',monospace", fontSize:10,
+            letterSpacing:"0.2em", cursor: loading || !pw.trim() ? "not-allowed" : "pointer",
+            transition:"all 0.2s",
+          }}
+        >
+          {loading ? "VERIFYING..." : "ENTER THE KINGDOM"}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+
 // ─── V3 ROSTER ───────────────────────────────────────────────────────────────
 
 const SOVEREIGN = { id: "sovereign", name: "THE SOVEREIGN", role: "Vision Holder · Final Authority", tier: "TIER I", ac: GOLD, icon: "♛" }
@@ -376,7 +477,7 @@ function Chat({ m, onClose, onEscalate, onCouncil, onWriteLogged }) {
     const next = [...msgs, um]
     setMsgs(next); setInp(""); setLoad(true); setSaved(false)
     try {
-      const res  = await fetch("/api/chat", {
+      const res  = await authFetch("/api/chat", {
         method:"POST", headers:{ "Content-Type":"application/json" },
         body: JSON.stringify({
           agentId: m.id,
@@ -407,7 +508,7 @@ function Chat({ m, onClose, onEscalate, onCouncil, onWriteLogged }) {
 
     // Write directly to the agent's Notion DB via the dedicated write endpoint
     try {
-      await fetch("/api/write", {
+      await authFetch("/api/write", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -449,7 +550,7 @@ function Chat({ m, onClose, onEscalate, onCouncil, onWriteLogged }) {
     if (saving || msgs.length < 2) return
     setSaving(true)
     try {
-      const res  = await fetch("/api/log", {
+      const res  = await authFetch("/api/log", {
         method:"POST", headers:{ "Content-Type":"application/json" },
         body: JSON.stringify({ agentId: m.id, agentName: m.name, messages: msgs.filter((x,i) => i > 0), type:"Conversation", venture:"Kingdom Alpha" }),
       })
@@ -603,6 +704,10 @@ function WriteLogModal({ entries, onClose }) {
 // ─── APP ──────────────────────────────────────────────────────────────────────
 
 export default function App() {
+  const [authed, setAuthed] = useState(() => !!localStorage.getItem(TOKEN_KEY))
+
+  if (!authed) return <LoginScreen onAuth={() => setAuthed(true)} />
+
   const [nav, setNav]               = useState("dashboard")
   const [col, setCol]               = useState(false)
   const [sel, setSel]               = useState(null)
@@ -623,7 +728,7 @@ export default function App() {
   useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t) }, [])
 
   useEffect(() => {
-    fetch("/api/notion?action=escalations")
+    authFetch("/api/notion?action=escalations")
       .then(r => r.json())
       .then(d => { if (d && Array.isArray(d.results)) setEscalationCount(d.results.length) })
       .catch(() => {})
@@ -631,7 +736,7 @@ export default function App() {
 
   const handleEscalate = async (agent) => {
     try {
-      await fetch("/api/notion?action=escalate", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ title:"Escalation from " + agent.name, agent: agent.name, details:"" }) })
+      await authFetch("/api/notion?action=escalate", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ title:"Escalation from " + agent.name, agent: agent.name, details:"" }) })
       setEscalationCount(c => c + 1)
     } catch {}
   }
