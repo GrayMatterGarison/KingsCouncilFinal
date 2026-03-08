@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react"
+import CouncilSession from "./CouncilSession"
 
 const GOLD = "#D4970C"
 const GOLD2 = "#F0B000"
@@ -155,14 +156,16 @@ function Card({ m, onClick, sel }) {
         <span style={{ ...mono, fontWeight:700, fontSize:12, color:sel?m.ac:TPRI, letterSpacing:"0.12em" }}>{m.name}</span>
       </div>
       <div style={{ ...mono, fontSize:10, color:sel?TSUB:TDIM, textTransform:"uppercase", marginBottom:12, paddingLeft:32 }}>{m.role}</div>
-      <button onClick={e => { e.stopPropagation(); onClick(m) }} style={{ width:"100%", padding:"5px 0", background:sel?"rgba(200,147,10,0.1)":"transparent", border:`1px solid ${sel?BGOLD:BORDER}`, borderRadius:3, color:sel?GOLD:TDIM, ...mono, fontSize:9, letterSpacing:"0.15em", textTransform:"uppercase", cursor:"pointer" }}>
-        {sel ? ">> CHANNEL OPEN" : "OPEN CHANNEL"}
-      </button>
+      <div style={{ display:"flex", gap:6 }}>
+        <button onClick={e => { e.stopPropagation(); onClick(m) }} style={{ flex:1, padding:"5px 0", background:sel?"rgba(200,147,10,0.1)":"transparent", border:`1px solid ${sel?BGOLD:BORDER}`, borderRadius:3, color:sel?GOLD:TDIM, ...mono, fontSize:9, letterSpacing:"0.15em", textTransform:"uppercase", cursor:"pointer" }}>
+          {sel ? ">> CHANNEL OPEN" : "OPEN CHANNEL"}
+        </button>
+      </div>
     </div>
   )
 }
 
-function Chat({ m, onClose, onEscalate }) {
+function Chat({ m, onClose, onEscalate, onCouncil }) {
   const [msgs, setMsgs] = useState([{ role:"assistant", content:`${m.name} online. ${m.tier} operative standing by. Awaiting directive, Sovereign.` }])
   const [inp, setInp] = useState("")
   const [load, setLoad] = useState(false)
@@ -227,6 +230,7 @@ function Chat({ m, onClose, onEscalate }) {
             <button onClick={saveSession} disabled={saving || msgs.length < 2} style={{ background:saved?"rgba(0,100,0,0.2)":"transparent", border:`1px solid ${saved?"#2A6A2A":BGOLD}`, borderRadius:3, color:saved?"#4CAF50":saving?TDIM:GOLDDM, padding:"4px 8px", ...mono, fontSize:8, cursor:saving||msgs.length<2?"not-allowed":"pointer" }}>
               {saving ? "SAVING..." : saved ? "LOGGED" : "SAVE SESSION"}
             </button>
+            <button onClick={onCouncil} style={{ background:"rgba(0,200,240,0.08)", border:`1px solid ${CYAN}40`, borderRadius:3, color:CYAN, padding:"4px 8px", ...mono, fontSize:8, cursor:"pointer", letterSpacing:"0.1em" }}>COUNCIL</button>
             <button onClick={() => onEscalate && onEscalate(m)} style={{ background:"transparent", border:`1px solid ${BCRIM}`, borderRadius:3, color:CRIM, padding:"4px 8px", ...mono, fontSize:8, cursor:"pointer" }}>ESCALATE</button>
             <button onClick={onClose} style={{ background:"transparent", border:`1px solid ${BORDER}`, borderRadius:3, color:TDIM, padding:"4px 8px", ...mono, fontSize:10, cursor:"pointer" }}>X</button>
           </div>
@@ -295,6 +299,7 @@ export default function App() {
   const [nav, setNav] = useState("dashboard")
   const [col, setCol] = useState(false)
   const [sel, setSel] = useState(null)
+  const [councilOp, setCouncilOp] = useState(null)
   const [time, setTime] = useState(new Date())
   const [escalationCount, setEscalationCount] = useState(0)
 
@@ -395,7 +400,8 @@ export default function App() {
           </div>
         </div>
       </div>
-      {sel && <Chat m={sel} onClose={() => setSel(null)} onEscalate={handleEscalate} />}
+      {sel && <Chat m={sel} onClose={() => setSel(null)} onEscalate={handleEscalate} onCouncil={() => { setCouncilOp(sel.id); setSel(null) }} />}
+      {councilOp && <CouncilSession primaryOperative={councilOp} onClose={() => setCouncilOp(null)} />}
     </>
   )
 }
