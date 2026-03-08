@@ -97,19 +97,39 @@ function writeProposalSuffix(agentId) {
 ─────────────────────────────────────────
 WRITE PROPOSAL PROTOCOL
 ─────────────────────────────────────────
-When you have produced analysis, a decision record, a plan, a ruling, or any output worth preserving in the Kingdom's databases, propose a write at the END of your response using this EXACT format:
+When you have produced something worth preserving as a permanent doctrine, framework, ruling, plan, or analysis — propose a write at the END of your response using this EXACT format:
 
 [WRITE_PROPOSAL]
 target: ${target}
-content: <the concise record to be written — 1 to 5 sentences, self-contained>
+content:
+## [Document Title]
+
+[Opening paragraph: one or two sentences framing what this document is and why it matters.]
+
+## [First Section Heading]
+
+[Full section body — explain the concept, principle, or framework in complete sentences. This is a permanent reference document, not a summary.]
+
+## [Second Section Heading]
+
+[Continue with additional sections as needed.]
+
+* [Bullet points for lists, categories, or enumerated items]
+* [Each bullet on its own line starting with *]
+
+## Application to This Kingdom
+
+[One paragraph: how this doctrine applies specifically to this kingdom's situation.]
 [/WRITE_PROPOSAL]
 
 Rules:
-- Only propose a write when the output genuinely warrants a permanent record. Not every message needs one.
+- Only propose a write when the conversation has produced something genuinely worth preserving — a doctrine, framework, ruling, analysis, or plan. Not every message warrants one.
+- Write the FULL document inside the content field. It must be self-contained and readable without conversation context.
+- Use ## for major section headings, ### for sub-headings, * for bullet points, blank lines between sections.
 - The Sovereign must approve before anything is written. You are proposing, not executing.
-- Keep content concise and self-contained — it will be read without conversation context.
 - Place the block at the very end of your response, after your main reply.
-- Never propose more than one write per response.`
+- Never propose more than one write per response.
+- Minimum length: 200 words of genuine substance. If you cannot meet this, do not propose a write.`
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
