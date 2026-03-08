@@ -166,6 +166,8 @@ function Chat({ m, onClose, onEscalate }) {
   const [msgs, setMsgs] = useState([{ role:"assistant", content:`${m.name} online. ${m.tier} operative standing by. Awaiting directive, Sovereign.` }])
   const [inp, setInp] = useState("")
   const [load, setLoad] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   const bot = useRef(null)
 
   useEffect(() => { if (bot.current) bot.current.scrollIntoView({ behavior:"smooth" }) }, [msgs])
@@ -174,7 +176,7 @@ function Chat({ m, onClose, onEscalate }) {
     if (!inp.trim() || load) return
     const um = { role:"user", content:inp }
     const next = [...msgs, um]
-    setMsgs(next); setInp(""); setLoad(true)
+    setMsgs(next); setInp(""); setLoad(true); setSaved(false)
     try {
       const res = await fetch("/api/chat", {
         method:"POST", headers:{ "Content-Type":"application/json" },
@@ -186,6 +188,28 @@ function Chat({ m, onClose, onEscalate }) {
       setMsgs(p => [...p, { role:"assistant", content:"SIGNAL LOST. Check API configuration." }])
     }
     setLoad(false)
+  }
+
+  const saveSession = async () => {
+    if (saving || msgs.length < 2) return
+    setSaving(true)
+    try {
+      const res = await fetch("/api/log", {
+        method:"POST", headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({
+          operativeId: m.id,
+          operativeName: m.name,
+          messages: msgs.filter(x => x.role !== "assistant" || msgs.indexOf(x) > 0),
+          type: "Conversation",
+          venture: "Kingdom Alpha",
+        }),
+      })
+      const data = await res.json()
+      setSaved(data.success)
+    } catch {
+      setSaved(false)
+    }
+    setSaving(false)
   }
 
   return (
@@ -200,6 +224,9 @@ function Chat({ m, onClose, onEscalate }) {
             <div style={{ ...mono, fontSize:9, color:TDIM, textTransform:"uppercase", paddingLeft:32 }}>{m.role} / {m.tier}</div>
           </div>
           <div style={{ display:"flex", gap:6 }}>
+            <button onClick={saveSession} disabled={saving || msgs.length < 2} style={{ background:saved?"rgba(0,100,0,0.2)":"transparent", border:`1px solid ${saved?"#2A6A2A":BGOLD}`, borderRadius:3, color:saved?"#4CAF50":saving?TDIM:GOLDDM, padding:"4px 8px", ...mono, fontSize:8, cursor:saving||msgs.length<2?"not-allowed":"pointer" }}>
+              {saving ? "SAVING..." : saved ? "LOGGED" : "SAVE SESSION"}
+            </button>
             <button onClick={() => onEscalate && onEscalate(m)} style={{ background:"transparent", border:`1px solid ${BCRIM}`, borderRadius:3, color:CRIM, padding:"4px 8px", ...mono, fontSize:8, cursor:"pointer" }}>ESCALATE</button>
             <button onClick={onClose} style={{ background:"transparent", border:`1px solid ${BORDER}`, borderRadius:3, color:TDIM, padding:"4px 8px", ...mono, fontSize:10, cursor:"pointer" }}>X</button>
           </div>
