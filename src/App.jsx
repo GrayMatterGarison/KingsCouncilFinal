@@ -405,19 +405,17 @@ function Chat({ m, onClose, onEscalate, onCouncil, onWriteLogged }) {
       i === msgIndex ? { ...x, proposal: { ...x.proposal, status: "approved" } } : x
     ))
 
-    // Write to the log API (same endpoint as SAVE, tagged as a write action)
+    // Write directly to the agent's Notion DB via the dedicated write endpoint
     try {
-      await fetch("/api/log", {
+      await fetch("/api/write", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           agentId:   m.id,
           agentName: m.name,
-          type:      "Write Action",
           target:    msg.proposal.target,
           content:   msg.proposal.content,
           venture:   "Kingdom Alpha",
-          messages:  [],
         }),
       })
     } catch {}
