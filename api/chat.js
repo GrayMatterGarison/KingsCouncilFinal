@@ -2,6 +2,7 @@
 // Single-agent chat with Notion context injection — Kingdom Intelligence Architecture v3
 
 import { buildSystemPrompt } from './context.js'
+import { requireAuth } from './auth.js'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // WRITE PROPOSAL SUFFIX
@@ -768,6 +769,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+  if (!await requireAuth(req, res)) return
 
   const { messages, agentId, operativeId, systemPrompt: overridePrompt } = req.body
 
