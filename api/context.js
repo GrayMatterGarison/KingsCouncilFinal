@@ -117,16 +117,31 @@ async function getKingdomContext() {
   } catch { return '' }
 }
 
-async function getAgentMemory(agentId, limit = 5) {
-  if (!process.env.NOTION_TOKEN) return ''
+// Fetches Knowledge entries — doctrine, frameworks, reference material
+// These load on every session (higher limit, sorted by created so they stay stable)
+async function getAgentKnowledge(dbId, limit = 20) {
+  try {
+    const data = await notionPost(`/databases/${dbId}/query`, {
+      filter: {
+        property: 'Type', select: { equals: 'Knowledge' }
+      },
+      sorts: [{ timestamp: 'created_time', direction: 'ascending' }],
+      page_size: limit,
+    })
+    if (!data.results || data.results.length === 0) return ''
+    return data.results.map(r => {
+      const props   = r.properties || {}
+      const entry   = props.Entry?.title?.[0]?.plain_text || ''
+      const content = props['Full Content']?.rich_text?.[0]?.plain_text || ''
+      const summary = props.Summary?.rich_text?.[0]?.plain_text || ''
+      return `[KNOWLEDGE] ${entry}\n${content || summary}`.trim()
+    }).join('\n\n---\n\n')
+  } catch { return '' }
+}
 
-  // Support both v3 agentId and v1 operativeId (legacy)
-  const envKey = DB_MAP[agentId]
-  if (!envKey) return ''
-
-  const dbId = process.env[envKey]
-  if (!dbId) return ''
-
+// Fetches recent session memory — Directives, Briefs, Conversations
+// These load the most recent N entries so the agent knows what happened lately
+async function getAgentSessionMemory(dbId, limit = 5) {
   try {
     const data = await notionPost(`/databases/${dbId}/query`, {
       filter: {
@@ -139,19 +154,32 @@ async function getAgentMemory(agentId, limit = 5) {
       sorts: [{ timestamp: 'created_time', direction: 'descending' }],
       page_size: limit,
     })
-
     if (!data.results || data.results.length === 0) return ''
-
     return data.results.map(r => {
-      const props = r.properties || {}
+      const props   = r.properties || {}
       const entry   = props.Entry?.title?.[0]?.plain_text || ''
       const type    = props.Type?.select?.name || ''
       const summary = props.Summary?.rich_text?.[0]?.plain_text || ''
       const content = props['Full Content']?.rich_text?.[0]?.plain_text || ''
       return `[${type.toUpperCase()}] ${entry}\n${summary || content}`.trim()
     }).join('\n\n---\n\n')
-
   } catch { return '' }
+}
+
+async function getAgentMemory(agentId) {
+  if (!process.env.NOTION_TOKEN) return { knowledge: '', sessions: '' }
+
+  const envKey = DB_MAP[agentId]
+  if (!envKey) return { knowledge: '', sessions: '' }
+
+  const dbId = process.env[envKey]
+  if (!dbId) return { knowledge: '', sessions: '' }
+
+  const [knowledge, sessions] = await Promise.all([
+    getAgentKnowledge(dbId),
+    getAgentSessionMemory(dbId),
+  ])
+  return { knowledge, sessions }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -159,7 +187,7 @@ async function getAgentMemory(agentId, limit = 5) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function buildSystemPrompt(agentId, basePrompt) {
-  const [kingdomCtx, memory] = await Promise.all([
+  const [kingdomCtx, { knowledge, sessions }] = await Promise.all([
     getKingdomContext(),
     getAgentMemory(agentId),
   ])
@@ -170,8 +198,12 @@ export async function buildSystemPrompt(agentId, basePrompt) {
     enriched += `\n\n━━━ KINGDOM CONTEXT ━━━\n${kingdomCtx}`
   }
 
-  if (memory) {
-    enriched += `\n\n━━━ YOUR MEMORY & DIRECTIVES ━━━\n${memory}`
+  if (knowledge) {
+    enriched += `\n\n━━━ YOUR DOCTRINE & KNOWLEDGE BASE ━━━\nThe following frameworks and doctrine are permanently loaded into your operating mind. They inform every recommendation you make.\n\n${knowledge}`
+  }
+
+  if (sessions) {
+    enriched += `\n\n━━━ RECENT MEMORY & DIRECTIVES ━━━\n${sessions}`
   }
 
   enriched += `\n\n━━━ COUNCIL PROTOCOL ━━━
