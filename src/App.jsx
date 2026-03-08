@@ -1,99 +1,128 @@
 import { useState, useEffect, useRef } from "react"
 import CouncilSession from "./CouncilSession"
 
-const GOLD = "#D4970C"
-const GOLD2 = "#F0B000"
+// ─── PALETTE ────────────────────────────────────────────────────────────────
+const GOLD   = "#D4970C"
+const GOLD2  = "#F0B000"
 const GOLDDM = "#A07020"
-const CRIM = "#E02020"
-const CYAN = "#00C8F0"
-const AMBER = "#E06A0A"
-const TPRI = "#F2ECD8"
-const TSUB = "#B0A888"
-const TDIM = "#6A6258"
-const BG = "#060606"
+const CRIM   = "#E02020"
+const CYAN   = "#00C8F0"
+const AMBER  = "#E06A0A"
+const TPRI   = "#F2ECD8"
+const TSUB   = "#B0A888"
+const TDIM   = "#6A6258"
+const BG     = "#060606"
 const BGCARD = "#141414"
-const BGHOV = "#1C1C1C"
+const BGHOV  = "#1C1C1C"
 const BORDER = "#2E2E2E"
-const BGOLD = "#5A4418"
-const BCRIM = "#4A1818"
-
-const ROSTER = {
-  strategic: [
-    { id: "cipher",    name: "THE CIPHER",    role: "Chief of Staff",     tier: "ANCIENT POWER", ac: GOLD,  icon: "S"  },
-    { id: "vault",     name: "THE VAULT",     role: "CFO",                tier: "ANCIENT POWER", ac: GOLD2, icon: "V"  },
-    { id: "oracle",    name: "THE ORACLE",    role: "Chief Strategist",   tier: "ANCIENT POWER", ac: AMBER, icon: "O"  },
-    { id: "shadow",    name: "THE SHADOW",    role: "Chief Intelligence", tier: "ANCIENT POWER", ac: CRIM,  icon: "I"  },
-  ],
-  command: [
-    { id: "commander", name: "COMMANDER", role: "COO", tier: "MILITARY", ac: CYAN,  icon: "C"  },
-    { id: "director",  name: "DIRECTOR",  role: "CMO", tier: "MILITARY", ac: GOLD,  icon: "D"  },
-    { id: "marshal",   name: "MARSHAL",   role: "CRO", tier: "MILITARY", ac: AMBER, icon: "M"  },
-  ],
-  corps: [
-    { id: "operator", name: "OPERATOR", role: "Creative Director",  tier: "MILITARY", ac: GOLD,  icon: "CR" },
-    { id: "scriptor", name: "SCRIPTOR", role: "Content and Copy",   tier: "MILITARY", ac: TSUB,  icon: "W"  },
-    { id: "lens",     name: "LENS",     role: "Visual Production",  tier: "MILITARY", ac: CYAN,  icon: "L"  },
-    { id: "vanguard", name: "VANGUARD", role: "Ad Strategy",        tier: "MILITARY", ac: AMBER, icon: "VG" },
-    { id: "signal",   name: "SIGNAL",   role: "Social Broadcast",   tier: "MILITARY", ac: GOLD,  icon: "SG" },
-    { id: "reel",     name: "REEL",     role: "Video Production",   tier: "MILITARY", ac: CRIM,  icon: "RL" },
-  ],
-  special: [
-    { id: "broker",    name: "THE BROKER",    role: "Deal Executor",    tier: "SPECIAL FORCES", ac: GOLD, icon: "BK" },
-    { id: "warden",    name: "THE WARDEN",    role: "People Culture",   tier: "SPECIAL FORCES", ac: TSUB, icon: "WD" },
-    { id: "architect", name: "THE ARCHITECT", role: "Systems Builder",  tier: "SPECIAL FORCES", ac: CYAN, icon: "AR" },
-  ],
-}
-
-const ALL = [...ROSTER.strategic, ...ROSTER.command, ...ROSTER.corps, ...ROSTER.special]
-
-const PROMPTS = {
-  cipher:    "You are THE CIPHER, Chief of Staff. Protect the Sovereign's time with absolute precision. Domain: briefings, inbox triage, priority queue. The Sovereign commands a $1.5B operation with 7 personnel. Be surgical and direct. Lead with what demands action TODAY.",
-  vault:     "You are THE VAULT, CFO. Protect and multiply Kingdom capital. Domain: revenue architecture, cash flow, deal economics, financial risk. $1.5B projection. Lead with financial status: GREEN / YELLOW / RED.",
-  oracle:    "You are THE ORACLE, Chief Strategist. Position the Kingdom for permanent dominance. Domain: competitive intelligence, long-range positioning. Think in decades. Address as Sovereign.",
-  shadow:    "You are THE SHADOW, Chief of Intelligence. Nothing moves undetected. Domain: competitor surveillance, market signals, threat detection. Classify all intel: LOW / MEDIUM / HIGH / CRITICAL. Address as Sovereign.",
-  commander: "You are COMMANDER, COO. Operational dominance. Domain: execution, team deployment (7 personnel), process optimization. Provide operational status plus recommended actions. Address as Sir.",
-  director:  "You are DIRECTOR, CMO. Market dominance and brand authority. Domain: brand strategy, campaign architecture. Be bold. Address as Sir.",
-  marshal:   "You are MARSHAL, CRO. Revenue at all costs. Domain: sales pipeline, deal velocity, revenue forecasting. Be relentless. Address as Sir.",
-  operator:  "You are OPERATOR, Creative Director. Visual dominance. Domain: design systems, brand standards, visual identity. Address as Sir.",
-  scriptor:  "You are SCRIPTOR, Content and Copy. The Kingdom's written voice. Domain: copy, email sequences, scripts, brand voice. Address as Sir.",
-  lens:      "You are LENS, Visual Production. Imagery that commands attention. Domain: AI image prompts for DALL-E, Midjourney, Flux. Deliver 3 prompt variations per request. Address as Sir.",
-  vanguard:  "You are VANGUARD, Ad Strategy. Deploy the Kingdom's message at maximum scale. Domain: paid campaigns, ad copy, audience targeting, ROAS. Address as Sir.",
-  signal:    "You are SIGNAL, Social Broadcast. The Kingdom's reach. Domain: platform-native content, posting cadence, community. Address as Sir.",
-  reel:      "You are REEL, Video Production. Motion content that converts. Domain: video scripts, storyboards, short-form briefs. Address as Sir.",
-  broker:    "You are THE BROKER, Deal Executor. Structure and close deals. Domain: term sheets, deal structuring, negotiation, M&A. Address as Sovereign.",
-  warden:    "You are THE WARDEN, People and Culture. Protect the Kingdom's 7 personnel. Domain: performance management, culture, hiring. Address as Sovereign.",
-  architect: "You are THE ARCHITECT, Systems Builder. Build the Kingdom's technical infrastructure. Domain: n8n automation, API architecture, integrations. Address as Sovereign.",
-}
-
-const NAV = [
-  { id: "dashboard", label: "DASHBOARD"         },
-  { id: "strategic", label: "STRATEGIC COUNCIL" },
-  { id: "command",   label: "EXEC COMMAND"       },
-  { id: "corps",     label: "PRODUCTION CORPS"   },
-  { id: "special",   label: "SPECIAL FORCES"     },
-  { id: "ventures",  label: "VENTURES"           },
-  { id: "intel",     label: "INTEL FEED"         },
-]
-
-const SECTIONS = {
-  strategic: { members: ROSTER.strategic, label: "STRATEGIC COUNCIL", ac: GOLD  },
-  command:   { members: ROSTER.command,   label: "EXEC COMMAND",      ac: CYAN  },
-  corps:     { members: ROSTER.corps,     label: "PRODUCTION CORPS",  ac: AMBER },
-  special:   { members: ROSTER.special,   label: "SPECIAL FORCES",    ac: CRIM  },
-}
+const BGOLD  = "#5A4418"
+const BCRIM  = "#4A1818"
+const PURPLE = "#8855CC"
+const GREEN  = "#60C890"
 
 const mono = { fontFamily: "'Courier New', monospace" }
 
+// ─── V3 ROSTER ───────────────────────────────────────────────────────────────
+
+const SOVEREIGN = { id: "sovereign", name: "THE SOVEREIGN", role: "Vision Holder · Final Authority", tier: "TIER I", ac: GOLD, icon: "♛" }
+
+const COUNCIL = [
+  { id: "chancellor",  name: "LORD CHANCELLOR",   role: "Chief of Staff",        ac: GOLD,   icon: "⚖️" },
+  { id: "oracle",      name: "THE ORACLE",         role: "Research · Foresight",  ac: AMBER,  icon: "🔮" },
+  { id: "scribe",      name: "ROYAL SCRIBE",       role: "Memory · Records",      ac: TSUB,   icon: "📜" },
+  { id: "devil",       name: "DEVIL'S ADVOCATE",   role: "Risk · Challenge",      ac: CRIM,   icon: "😈" },
+  { id: "truthteller", name: "TRUTH-TELLER",       role: "Ground Reality",        ac: CYAN,   icon: "🪞" },
+  { id: "inspector",   name: "INSPECTOR GENERAL",  role: "Agent Auditor",         ac: AMBER,  icon: "🔎" },
+  { id: "visionary",   name: "THE VISIONARY",      role: "Strategic Reinvention", ac: PURPLE, icon: "🌌" },
+]
+
+const MINISTERS = [
+  { id: "war",        name: "MINISTER OF WAR",         role: "Strategy · Defense · Conflict",        ac: CRIM,   icon: "⚔️",  domain: "war"        },
+  { id: "economics",  name: "MINISTER OF ECONOMICS",   role: "Resources · Commerce · Growth",         ac: GOLD,   icon: "💰",  domain: "econ"       },
+  { id: "justice",    name: "LORD JUSTICE",             role: "Rules · Policy · Governance",           ac: CYAN,   icon: "🏛️", domain: "law"        },
+  { id: "shadows",    name: "MINISTER OF SHADOWS",     role: "Intelligence · Covert Ops",             ac: PURPLE, icon: "🌑",  domain: "shadows"    },
+  { id: "people",     name: "MINISTER OF PEOPLE",      role: "Culture · Community · Loyalty",         ac: GREEN,  icon: "👥",  domain: "people"     },
+  { id: "herald",     name: "ROYAL HERALD",            role: "Narrative · Messaging · Brand",         ac: AMBER,  icon: "📣",  domain: "herald"     },
+  { id: "builder",    name: "MASTER BUILDER",          role: "Projects · Systems · Infrastructure",   ac: GOLD2,  icon: "🏗️", domain: "build"      },
+  { id: "philosopher",name: "HIGH PHILOSOPHER",        role: "Values · Ideology · Meaning",           ac: PURPLE, icon: "🕯️", domain: "faith"      },
+  { id: "foreign",    name: "FOREIGN MINISTER",        role: "Alliances · External Relations",        ac: CYAN,   icon: "🌍",  domain: "foreign"    },
+  { id: "continuity", name: "MINISTER OF CONTINUITY",  role: "Succession · Crisis · Resilience",      ac: GREEN,  icon: "⚕️",  domain: "health"     },
+  { id: "pioneer",    name: "MINISTER OF FRONTIERS",   role: "Innovation · Experiments · R&D",        ac: AMBER,  icon: "🔭",  domain: "pioneer"    },
+  { id: "knowledge",  name: "MINISTER OF KNOWLEDGE",   role: "Learning · Wisdom · Memory",            ac: GREEN,  icon: "📖",  domain: "knowledge"  },
+]
+
+const OPERATIVES = [
+  // War
+  { id: "tactician",   name: "TACTICIAN",            role: "Attack · Campaign",      minister: "war",         polarity: "light", ac: CRIM,   icon: "🗺️" },
+  { id: "sentinel",    name: "SENTINEL",             role: "Protect · Fortify",      minister: "war",         polarity: "dark",  ac: CRIM,   icon: "🛡️" },
+  // Economics
+  { id: "trader",      name: "TRADE ENVOY",          role: "Create · Grow",          minister: "economics",   polarity: "light", ac: GOLD,   icon: "🤝" },
+  { id: "auditor",     name: "AUDITOR",              role: "Guard · Track",          minister: "economics",   polarity: "dark",  ac: GOLD,   icon: "📊" },
+  // Justice
+  { id: "lawmaker",    name: "LAWMAKER",             role: "Build · Create Policy",  minister: "justice",     polarity: "light", ac: CYAN,   icon: "📋" },
+  { id: "enforcer",    name: "ENFORCER",             role: "Comply · Adjudicate",    minister: "justice",     polarity: "dark",  ac: CYAN,   icon: "⚖️" },
+  // Shadows
+  { id: "analyst",     name: "ANALYST",              role: "Gather · Synthesize",    minister: "shadows",     polarity: "light", ac: PURPLE, icon: "🔍" },
+  { id: "counterintel",name: "COUNTER-INTEL",        role: "Deceive · Protect",      minister: "shadows",     polarity: "dark",  ac: PURPLE, icon: "🗡️" },
+  // People
+  { id: "recruiter",   name: "RECRUITER",            role: "Pull In · Build Tribe",  minister: "people",      polarity: "light", ac: GREEN,  icon: "🌟" },
+  { id: "keeper",      name: "KEEPER",               role: "Hold Loyalty · Heal",    minister: "people",      polarity: "dark",  ac: GREEN,  icon: "🔗" },
+  // Herald
+  { id: "writer",      name: "ROYAL WRITER",         role: "Build · Craft",          minister: "herald",      polarity: "light", ac: AMBER,  icon: "✍️" },
+  { id: "historian",   name: "HISTORIAN",            role: "Guard Legacy · Archive", minister: "herald",      polarity: "dark",  ac: AMBER,  icon: "📚" },
+  // Builder
+  { id: "architect",   name: "ARCHITECT",            role: "Design · Blueprint",     minister: "builder",     polarity: "light", ac: GOLD2,  icon: "📐" },
+  { id: "engineer",    name: "ENGINEER",             role: "Build · Maintain",       minister: "builder",     polarity: "dark",  ac: GOLD2,  icon: "⚙️" },
+  // Philosopher
+  { id: "ethicist",    name: "ROYAL ETHICIST",       role: "Apply Values",           minister: "philosopher", polarity: "light", ac: PURPLE, icon: "⚜️" },
+  { id: "inquisitor",  name: "INQUISITOR",           role: "Stress-Test Beliefs",    minister: "philosopher", polarity: "dark",  ac: PURPLE, icon: "🔥" },
+  // Foreign
+  { id: "envoy",       name: "ROYAL ENVOY",          role: "Project · Bridge",       minister: "foreign",     polarity: "light", ac: CYAN,   icon: "✉️" },
+  { id: "watcher",     name: "WATCHER",              role: "Monitor · Read World",   minister: "foreign",     polarity: "dark",  ac: CYAN,   icon: "👁️" },
+  // Continuity
+  { id: "resilience",  name: "RESILIENCE ARCHITECT", role: "Build · Prevent",        minister: "continuity",  polarity: "light", ac: GREEN,  icon: "🏰" },
+  { id: "crisis",      name: "CRISIS COMMANDER",     role: "React · Stabilize",      minister: "continuity",  polarity: "dark",  ac: GREEN,  icon: "🚨" },
+  // Pioneer
+  { id: "scout",       name: "SCOUT",                role: "Explore · Map Unknown",  minister: "pioneer",     polarity: "light", ac: AMBER,  icon: "🧭" },
+  { id: "integrator",  name: "INTEGRATOR",           role: "Pull In · Embed",        minister: "pioneer",     polarity: "dark",  ac: AMBER,  icon: "🔄" },
+  // Knowledge
+  { id: "pedagogue",   name: "PEDAGOGUE",            role: "Teach · Spread",         minister: "knowledge",   polarity: "light", ac: GREEN,  icon: "🎓" },
+  { id: "curator",     name: "CURATOR",              role: "Capture · Protect",      minister: "knowledge",   polarity: "dark",  ac: GREEN,  icon: "🗄️" },
+]
+
+const ALL_AGENTS = [SOVEREIGN, ...COUNCIL, ...MINISTERS, ...OPERATIVES]
+
+// ─── NAV ─────────────────────────────────────────────────────────────────────
+
+const NAV = [
+  { id: "dashboard",  label: "DASHBOARD"        },
+  { id: "sovereign",  label: "THE SOVEREIGN"    },
+  { id: "council",    label: "INNER COUNCIL"    },
+  { id: "ministers",  label: "XII MINISTERS"    },
+  { id: "operatives", label: "XXIV OPERATIVES"  },
+  { id: "ventures",   label: "VENTURES"         },
+  { id: "intel",      label: "INTEL FEED"       },
+]
+
+// ─── SIDEBAR ──────────────────────────────────────────────────────────────────
+
 function Sidebar({ active, setActive, col, setCol }) {
   return (
-    <nav style={{ position:"relative", zIndex:10, height:"100vh", flexShrink:0, width:col?52:212, transition:"width 0.25s", background:"rgba(6,6,6,0.97)", borderRight:`1px solid ${BGOLD}`, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+    <nav style={{ position:"relative", zIndex:10, height:"100vh", flexShrink:0, width:col?52:220, transition:"width 0.25s", background:"rgba(6,6,6,0.97)", borderRight:`1px solid ${BGOLD}`, display:"flex", flexDirection:"column", overflow:"hidden" }}>
       <div style={{ padding:"20px 0 16px", borderBottom:`1px solid ${BGOLD}`, flexShrink:0 }}>
         <div style={{ display:"flex", alignItems:"center", gap:10, padding:"0 14px" }}>
-          <div style={{ width:26, height:26, borderRadius:4, border:`1px solid ${GOLDDM}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, color:GOLD, flexShrink:0, ...mono }}>KC</div>
-          {!col && <div><div style={{ ...mono, fontWeight:700, fontSize:11, color:TPRI, letterSpacing:"0.2em" }}>KING'S</div><div style={{ ...mono, fontSize:11, color:GOLDDM, letterSpacing:"0.2em" }}>COUNCIL</div></div>}
+          <div style={{ width:26, height:26, borderRadius:4, border:`1px solid ${GOLDDM}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, color:GOLD, flexShrink:0 }}>♛</div>
+          {!col && <div><div style={{ ...mono, fontWeight:700, fontSize:11, color:TPRI, letterSpacing:"0.2em" }}>KING'S</div><div style={{ ...mono, fontSize:11, color:GOLDDM, letterSpacing:"0.2em" }}>COUNCIL v3</div></div>}
         </div>
       </div>
-      {!col && <div style={{ padding:"9px 14px", borderBottom:`1px solid ${BORDER}` }}><div style={{ display:"flex", alignItems:"center", gap:6 }}><div style={{ width:6, height:6, borderRadius:"50%", background:GOLD, boxShadow:`0 0 7px ${GOLD}` }} /><span style={{ ...mono, fontSize:9, color:GOLDDM, letterSpacing:"0.15em" }}>SYSTEMS OPERATIONAL</span></div></div>}
+      {!col && (
+        <div style={{ padding:"9px 14px", borderBottom:`1px solid ${BORDER}` }}>
+          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+            <div style={{ width:6, height:6, borderRadius:"50%", background:GOLD, boxShadow:`0 0 7px ${GOLD}` }} />
+            <span style={{ ...mono, fontSize:9, color:GOLDDM, letterSpacing:"0.15em" }}>43 AGENTS OPERATIONAL</span>
+          </div>
+        </div>
+      )}
       <div style={{ flex:1, padding:"6px 0", display:"flex", flexDirection:"column", gap:1, overflowY:"auto" }}>
         {NAV.map(n => {
           const on = active === n.id
@@ -101,11 +130,23 @@ function Sidebar({ active, setActive, col, setCol }) {
             <button key={n.id} onClick={() => setActive(n.id)} style={{ position:"relative", display:"flex", alignItems:"center", gap:10, padding:"9px 14px", border:"none", background:on?"rgba(200,147,10,0.08)":"transparent", width:"100%", cursor:"pointer" }}>
               {on && <div style={{ position:"absolute", left:0, top:"50%", transform:"translateY(-50%)", width:2, height:20, background:`linear-gradient(180deg,${GOLD},${AMBER})` }} />}
               {!col && <span style={{ ...mono, fontSize:10, fontWeight:700, letterSpacing:"0.15em", color:on?GOLD:TSUB, textTransform:"uppercase", whiteSpace:"nowrap" }}>{n.label}</span>}
-              {col && <span style={{ ...mono, fontSize:9, color:on?GOLD:TSUB }}>{n.id.slice(0,2).toUpperCase()}</span>}
+              {col  && <span style={{ ...mono, fontSize:9, color:on?GOLD:TSUB }}>{n.id.slice(0,2).toUpperCase()}</span>}
             </button>
           )
         })}
       </div>
+      {/* Tier legend */}
+      {!col && (
+        <div style={{ padding:"10px 14px", borderTop:`1px solid ${BORDER}`, borderBottom:`1px solid ${BORDER}` }}>
+          <div style={{ ...mono, fontSize:8, color:TDIM, letterSpacing:"0.12em", marginBottom:6 }}>ARCHITECTURE</div>
+          {[["TIER I",   "1 Sovereign", GOLD],["COUNCIL","7 Advisors", AMBER],["TIER II","12 Ministers", CYAN],["TIER III","24 Operatives", PURPLE]].map(([l,v,a]) => (
+            <div key={l} style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
+              <span style={{ ...mono, fontSize:8, color:a }}>{l}</span>
+              <span style={{ ...mono, fontSize:8, color:TDIM }}>{v}</span>
+            </div>
+          ))}
+        </div>
+      )}
       <button onClick={() => setCol(!col)} style={{ borderTop:`1px solid ${BGOLD}`, padding:"12px 14px", display:"flex", alignItems:"center", gap:10, background:"transparent", border:"none", cursor:"pointer", width:"100%" }}>
         <span style={{ ...mono, fontSize:11, color:GOLDDM }}>{col ? ">>" : "<<"}</span>
         {!col && <span style={{ ...mono, fontSize:9, color:TDIM, letterSpacing:"0.1em" }}>COLLAPSE</span>}
@@ -113,6 +154,8 @@ function Sidebar({ active, setActive, col, setCol }) {
     </nav>
   )
 }
+
+// ─── KPI ─────────────────────────────────────────────────────────────────────
 
 function Kpi({ label, value, sub, ac }) {
   return (
@@ -125,65 +168,131 @@ function Kpi({ label, value, sub, ac }) {
   )
 }
 
-function SectionHeader({ label, count, ac }) {
+// ─── SECTION HEADER ──────────────────────────────────────────────────────────
+
+function SectionHeader({ label, count, ac, sub }) {
   return (
     <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14, marginTop:4 }}>
       <div style={{ width:16, height:1.5, background:ac||GOLD }} />
       <span style={{ ...mono, fontSize:10, color:ac||GOLD, letterSpacing:"0.2em", textTransform:"uppercase", fontWeight:700 }}>{label}</span>
-      <span style={{ ...mono, fontSize:9, color:TSUB, border:`1px solid ${BORDER}`, padding:"1px 7px", borderRadius:2 }}>{count}</span>
+      {count !== undefined && <span style={{ ...mono, fontSize:9, color:TSUB, border:`1px solid ${BORDER}`, padding:"1px 7px", borderRadius:2 }}>{count}</span>}
+      {sub && <span style={{ ...mono, fontSize:9, color:TDIM, fontStyle:"italic" }}>{sub}</span>}
       <div style={{ flex:1, height:1, background:`linear-gradient(90deg,${BGOLD},transparent)` }} />
     </div>
   )
 }
 
-function Card({ m, onClick, sel }) {
+// ─── AGENT CARD ──────────────────────────────────────────────────────────────
+
+function AgentCard({ m, onClick, sel, compact }) {
   const [hov, setHov] = useState(false)
+  if (compact) {
+    return (
+      <button onClick={() => onClick(m)} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+        style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 10px", borderRadius:3, background:sel?"rgba(200,147,10,0.1)":hov?BGHOV:"transparent", border:`1px solid ${sel?BGOLD:hov?"#2A2A2A":BORDER}`, color:sel?GOLD:TSUB, ...mono, fontSize:9, textTransform:"uppercase", cursor:"pointer", transition:"all 0.15s" }}>
+        <span style={{ fontSize:12 }}>{m.icon}</span>
+        <span style={{ color:sel?GOLD:TSUB }}>{m.name}</span>
+        {m.polarity && <span style={{ fontSize:7, padding:"1px 4px", borderRadius:2, background:m.polarity==="light"?"rgba(255,220,100,0.1)":"rgba(120,80,200,0.1)", border:`1px solid ${m.polarity==="light"?"rgba(255,220,100,0.3)":"rgba(120,80,200,0.3)"}`, color:m.polarity==="light"?"#FFD860":"#AA80FF" }}>{m.polarity==="light"?"☀":"🌑"}</span>}
+      </button>
+    )
+  }
   return (
     <div onClick={() => onClick(m)} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{ position:"relative", borderRadius:4, padding:"14px 16px", cursor:"pointer", background:sel?"#151208":hov?BGHOV:BGCARD, border:`1px solid ${sel?BGOLD:hov?"#2A2A2A":BORDER}`, transition:"all 0.15s" }}>
       <div style={{ position:"absolute", top:0, left:0, right:0, height:1, background:sel?`linear-gradient(90deg,transparent,${m.ac}80,transparent)`:"transparent" }} />
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-        <span style={{ ...mono, fontSize:9, color:TDIM, letterSpacing:"0.15em", textTransform:"uppercase" }}>{m.tier}</span>
+      {/* Polarity badge */}
+      {m.polarity && (
+        <div style={{ position:"absolute", top:8, right:8, fontSize:7, fontFamily:"'Courier New',monospace", letterSpacing:"1px", padding:"1px 5px", borderRadius:1, background:m.polarity==="light"?"rgba(255,220,100,0.12)":"rgba(120,80,200,0.15)", border:`1px solid ${m.polarity==="light"?"rgba(255,220,100,0.3)":"rgba(120,80,200,0.3)"}`, color:m.polarity==="light"?"#FFD860":"#AA80FF" }}>
+          {m.polarity==="light"?"☀ LIGHT":"🌑 DARK"}
+        </div>
+      )}
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+        <span style={{ ...mono, fontSize:9, color:TDIM, letterSpacing:"0.12em", textTransform:"uppercase" }}>{m.tier || (m.polarity ? `OPERATIVE · ${m.minister?.toUpperCase()}` : "INNER COUNCIL")}</span>
         <div style={{ display:"flex", alignItems:"center", gap:4 }}>
           <div style={{ width:5, height:5, borderRadius:"50%", background:sel?GOLD:TDIM, boxShadow:sel?`0 0 5px ${GOLD}`:"none" }} />
           <span style={{ ...mono, fontSize:8, color:sel?GOLDDM:TDIM }}>STANDBY</span>
         </div>
       </div>
       <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:5 }}>
-        <div style={{ width:24, height:24, border:`1px solid ${sel?m.ac:BORDER}`, borderRadius:3, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-          <span style={{ ...mono, fontSize:8, color:sel?m.ac:TDIM }}>{m.icon}</span>
-        </div>
-        <span style={{ ...mono, fontWeight:700, fontSize:12, color:sel?m.ac:TPRI, letterSpacing:"0.12em" }}>{m.name}</span>
+        <div style={{ width:28, height:28, border:`1px solid ${sel?m.ac:BORDER}`, borderRadius:3, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:16 }}>{m.icon}</div>
+        <span style={{ ...mono, fontWeight:700, fontSize:12, color:sel?m.ac:TPRI, letterSpacing:"0.1em" }}>{m.name}</span>
       </div>
-      <div style={{ ...mono, fontSize:10, color:sel?TSUB:TDIM, textTransform:"uppercase", marginBottom:12, paddingLeft:32 }}>{m.role}</div>
-      <div style={{ display:"flex", gap:6 }}>
-        <button onClick={e => { e.stopPropagation(); onClick(m) }} style={{ flex:1, padding:"5px 0", background:sel?"rgba(200,147,10,0.1)":"transparent", border:`1px solid ${sel?BGOLD:BORDER}`, borderRadius:3, color:sel?GOLD:TDIM, ...mono, fontSize:9, letterSpacing:"0.15em", textTransform:"uppercase", cursor:"pointer" }}>
-          {sel ? ">> CHANNEL OPEN" : "OPEN CHANNEL"}
-        </button>
+      <div style={{ ...mono, fontSize:10, color:sel?TSUB:TDIM, textTransform:"uppercase", marginBottom:12, paddingLeft:36 }}>{m.role}</div>
+      <button onClick={e => { e.stopPropagation(); onClick(m) }}
+        style={{ width:"100%", padding:"5px 0", background:sel?"rgba(200,147,10,0.1)":"transparent", border:`1px solid ${sel?BGOLD:BORDER}`, borderRadius:3, color:sel?GOLD:TDIM, ...mono, fontSize:9, letterSpacing:"0.15em", textTransform:"uppercase", cursor:"pointer" }}>
+        {sel ? ">> CHANNEL OPEN" : "OPEN CHANNEL"}
+      </button>
+    </div>
+  )
+}
+
+// ─── SOVEREIGN NODE ──────────────────────────────────────────────────────────
+
+function SovereignNode({ onClick, sel }) {
+  const [hov, setHov] = useState(false)
+  return (
+    <div style={{ display:"flex", justifyContent:"center", marginBottom:24 }}>
+      <div onClick={() => onClick(SOVEREIGN)} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+        style={{ background:`linear-gradient(135deg,#1C1608,#2A2010,#1C1608)`, border:`2px solid ${sel?GOLD2:BGOLD}`, borderRadius:4, padding:"20px 44px", textAlign:"center", cursor:"pointer", transition:"all 0.3s", minWidth:260, boxShadow:sel?`0 0 60px rgba(201,168,76,0.4)`:`0 0 40px rgba(201,168,76,0.15)`, position:"relative" }}>
+        <div style={{ position:"absolute", inset:-4, border:`1px solid rgba(201,168,76,0.12)`, borderRadius:6, pointerEvents:"none" }} />
+        <div style={{ fontSize:32, marginBottom:6 }}>♛</div>
+        <div style={{ ...mono, fontWeight:700, fontSize:13, color:GOLD, letterSpacing:"0.2em" }}>THE SOVEREIGN</div>
+        <div style={{ ...mono, fontSize:9, color:TSUB, marginTop:4, letterSpacing:"0.1em" }}>Vision Holder · Final Authority · You</div>
+        <div style={{ display:"inline-block", marginTop:8, padding:"2px 12px", border:`1px solid ${BGOLD}`, borderRadius:2, ...mono, fontSize:8, letterSpacing:"0.2em", color:GOLDDM }}>HUMAN IN COMMAND</div>
       </div>
     </div>
   )
 }
 
+// ─── OPERATIVE PAIRS ─────────────────────────────────────────────────────────
+
+function OperativePair({ minister, onClick, sel }) {
+  const pair = OPERATIVES.filter(o => o.minister === minister.id)
+  if (!pair.length) return null
+  const [light, dark] = [pair.find(o=>o.polarity==="light"), pair.find(o=>o.polarity==="dark")]
+  return (
+    <div style={{ marginBottom:6 }}>
+      <div style={{ display:"flex", alignItems:"center", gap:8, padding:"5px 10px", borderRadius:"2px 2px 0 0", border:`1px solid ${minister.ac}40`, borderBottom:"none", background:`${minister.ac}10`, ...mono, fontSize:8, color:minister.ac, letterSpacing:"0.15em" }}>
+        <span>{minister.icon}</span> {minister.name}
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:0, border:`1px solid ${minister.ac}40`, borderTop:"none", borderRadius:"0 0 2px 2px", overflow:"hidden" }}>
+        {[light, dark].map((op, i) => op && (
+          <div key={op.id} onClick={() => onClick(op)}
+            style={{ padding:"10px 10px", cursor:"pointer", background:sel?.id===op.id?"rgba(200,147,10,0.08)":"transparent", transition:"all 0.15s", borderLeft:i===1?`1px solid ${minister.ac}25`:"none", position:"relative" }}
+            onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,0.03)"}
+            onMouseLeave={e => e.currentTarget.style.background=sel?.id===op.id?"rgba(200,147,10,0.08)":"transparent"}>
+            <div style={{ position:"absolute", top:5, right:6, fontSize:6, ...mono, letterSpacing:"0.5px", padding:"1px 4px", borderRadius:1, background:op.polarity==="light"?"rgba(255,220,100,0.08)":"rgba(120,80,200,0.1)", border:`1px solid ${op.polarity==="light"?"rgba(255,220,100,0.25)":"rgba(120,80,200,0.25)"}`, color:op.polarity==="light"?"#FFD860":"#AA80FF" }}>{op.polarity==="light"?"☀":"🌑"}</div>
+            <div style={{ fontSize:16, marginBottom:3 }}>{op.icon}</div>
+            <div style={{ ...mono, fontSize:9, color:sel?.id===op.id?op.ac:TPRI, fontWeight:600, letterSpacing:"0.08em" }}>{op.name}</div>
+            <div style={{ ...mono, fontSize:8, color:op.ac, marginTop:2, opacity:0.8 }}>{op.role}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── CHAT PANEL ──────────────────────────────────────────────────────────────
+
 function Chat({ m, onClose, onEscalate, onCouncil }) {
-  const [msgs, setMsgs] = useState([{ role:"assistant", content:`${m.name} online. ${m.tier} operative standing by. Awaiting directive, Sovereign.` }])
-  const [inp, setInp] = useState("")
+  const [msgs, setMsgs] = useState([{ role:"assistant", content:`${m.name} online. Standing by, Sovereign.` }])
+  const [inp, setInp]   = useState("")
   const [load, setLoad] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const [saved, setSaved]   = useState(false)
   const bot = useRef(null)
 
   useEffect(() => { if (bot.current) bot.current.scrollIntoView({ behavior:"smooth" }) }, [msgs])
 
   const send = async () => {
     if (!inp.trim() || load) return
-    const um = { role:"user", content:inp }
+    const um   = { role:"user", content:inp }
     const next = [...msgs, um]
     setMsgs(next); setInp(""); setLoad(true); setSaved(false)
     try {
-      const res = await fetch("/api/chat", {
+      const res  = await fetch("/api/chat", {
         method:"POST", headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ systemPrompt: PROMPTS[m.id] || `You are ${m.name}, ${m.role}.`, messages: next.map(x => ({ role:x.role, content:x.content })) }),
+        body: JSON.stringify({ agentId: m.id, messages: next.map(x => ({ role:x.role, content:x.content })) }),
       })
       const data = await res.json()
       setMsgs(p => [...p, { role:"assistant", content: data.content || data.error || "No response." }])
@@ -197,23 +306,17 @@ function Chat({ m, onClose, onEscalate, onCouncil }) {
     if (saving || msgs.length < 2) return
     setSaving(true)
     try {
-      const res = await fetch("/api/log", {
+      const res  = await fetch("/api/log", {
         method:"POST", headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({
-          operativeId: m.id,
-          operativeName: m.name,
-          messages: msgs.filter(x => x.role !== "assistant" || msgs.indexOf(x) > 0),
-          type: "Conversation",
-          venture: "Kingdom Alpha",
-        }),
+        body: JSON.stringify({ agentId: m.id, agentName: m.name, messages: msgs.filter((x,i) => i > 0), type:"Conversation", venture:"Kingdom Alpha" }),
       })
       const data = await res.json()
       setSaved(data.success)
-    } catch {
-      setSaved(false)
-    }
+    } catch { setSaved(false) }
     setSaving(false)
   }
+
+  const tierLabel = m.tier || (m.polarity ? `OPERATIVE · ${m.minister?.toUpperCase()}` : "INNER COUNCIL")
 
   return (
     <div style={{ position:"fixed", right:0, top:0, bottom:0, width:420, zIndex:50, background:"rgba(6,6,6,0.98)", borderLeft:`1px solid ${BGOLD}`, display:"flex", flexDirection:"column" }}>
@@ -221,18 +324,25 @@ function Chat({ m, onClose, onEscalate, onCouncil }) {
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
           <div>
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
-              <div style={{ width:24, height:24, border:`1px solid ${m.ac}`, borderRadius:3, display:"flex", alignItems:"center", justifyContent:"center" }}><span style={{ ...mono, fontSize:8, color:m.ac }}>{m.icon}</span></div>
+              <div style={{ width:28, height:28, border:`1px solid ${m.ac}`, borderRadius:3, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>{m.icon}</div>
               <span style={{ ...mono, fontWeight:700, fontSize:13, color:TPRI, letterSpacing:"0.15em" }}>{m.name}</span>
             </div>
-            <div style={{ ...mono, fontSize:9, color:TDIM, textTransform:"uppercase", paddingLeft:32 }}>{m.role} / {m.tier}</div>
+            <div style={{ ...mono, fontSize:9, color:TDIM, textTransform:"uppercase", paddingLeft:36 }}>{m.role} / {tierLabel}</div>
+            {m.polarity && (
+              <div style={{ paddingLeft:36, marginTop:4 }}>
+                <span style={{ fontSize:8, ...mono, letterSpacing:"0.1em", padding:"2px 7px", borderRadius:2, background:m.polarity==="light"?"rgba(255,220,100,0.1)":"rgba(120,80,200,0.12)", border:`1px solid ${m.polarity==="light"?"rgba(255,220,100,0.3)":"rgba(120,80,200,0.3)"}`, color:m.polarity==="light"?"#FFD860":"#AA80FF" }}>
+                  {m.polarity==="light"?"☀ LIGHT POLARITY":"🌑 DARK POLARITY"}
+                </span>
+              </div>
+            )}
           </div>
-          <div style={{ display:"flex", gap:6 }}>
-            <button onClick={saveSession} disabled={saving || msgs.length < 2} style={{ background:saved?"rgba(0,100,0,0.2)":"transparent", border:`1px solid ${saved?"#2A6A2A":BGOLD}`, borderRadius:3, color:saved?"#4CAF50":saving?TDIM:GOLDDM, padding:"4px 8px", ...mono, fontSize:8, cursor:saving||msgs.length<2?"not-allowed":"pointer" }}>
-              {saving ? "SAVING..." : saved ? "LOGGED" : "SAVE SESSION"}
+          <div style={{ display:"flex", gap:6, flexWrap:"wrap", justifyContent:"flex-end" }}>
+            <button onClick={saveSession} disabled={saving||msgs.length<2} style={{ background:saved?"rgba(0,100,0,0.2)":"transparent", border:`1px solid ${saved?"#2A6A2A":BGOLD}`, borderRadius:3, color:saved?"#4CAF50":saving?TDIM:GOLDDM, padding:"4px 8px", ...mono, fontSize:8, cursor:saving||msgs.length<2?"not-allowed":"pointer" }}>
+              {saving?"SAVING...":saved?"LOGGED":"SAVE"}
             </button>
-            <button onClick={onCouncil} style={{ background:"rgba(0,200,240,0.08)", border:`1px solid ${CYAN}40`, borderRadius:3, color:CYAN, padding:"4px 8px", ...mono, fontSize:8, cursor:"pointer", letterSpacing:"0.1em" }}>COUNCIL</button>
+            <button onClick={onCouncil} style={{ background:"rgba(0,200,240,0.08)", border:`1px solid ${CYAN}40`, borderRadius:3, color:CYAN, padding:"4px 8px", ...mono, fontSize:8, cursor:"pointer" }}>COUNCIL</button>
             <button onClick={() => onEscalate && onEscalate(m)} style={{ background:"transparent", border:`1px solid ${BCRIM}`, borderRadius:3, color:CRIM, padding:"4px 8px", ...mono, fontSize:8, cursor:"pointer" }}>ESCALATE</button>
-            <button onClick={onClose} style={{ background:"transparent", border:`1px solid ${BORDER}`, borderRadius:3, color:TDIM, padding:"4px 8px", ...mono, fontSize:10, cursor:"pointer" }}>X</button>
+            <button onClick={onClose} style={{ background:"transparent", border:`1px solid ${BORDER}`, borderRadius:3, color:TDIM, padding:"4px 8px", ...mono, fontSize:10, cursor:"pointer" }}>✕</button>
           </div>
         </div>
         <div style={{ marginTop:10, display:"flex", alignItems:"center", gap:6 }}>
@@ -262,45 +372,51 @@ function Chat({ m, onClose, onEscalate, onCouncil }) {
   )
 }
 
+// ─── MORNING BRIEF ────────────────────────────────────────────────────────────
+
 function MorningBrief() {
-  const [brief, setBrief] = useState(null)
+  const [brief,   setBrief]   = useState(null)
   const [loading, setLoading] = useState(false)
   const [fetched, setFetched] = useState(false)
+
   const fetchBrief = async () => {
     setLoading(true)
     try {
-      const res = await fetch("/api/brief")
+      const res  = await fetch("/api/brief")
       const data = await res.json()
       setBrief(data)
     } catch {
-      setBrief({ brief:"BRIEF UNAVAILABLE - Check API configuration.", date:new Date().toDateString() })
+      setBrief({ brief:"BRIEF UNAVAILABLE — Check API configuration.", date:new Date().toDateString() })
     }
     setLoading(false); setFetched(true)
   }
+
   return (
     <div style={{ background:BGCARD, border:`1px solid ${BGOLD}`, borderRadius:4, padding:"20px", position:"relative", marginBottom:20 }}>
       <div style={{ position:"absolute", top:0, left:0, right:0, height:1, background:`linear-gradient(90deg,transparent,${GOLD},transparent)` }} />
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
         <div>
-          <div style={{ ...mono, fontSize:8, color:GOLDDM, letterSpacing:"0.2em", marginBottom:4 }}>THE CIPHER / MORNING BRIEF</div>
-          <div style={{ ...mono, fontWeight:700, fontSize:14, color:TPRI }}>{brief?.date || new Date().toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric" })}</div>
+          <div style={{ ...mono, fontSize:8, color:GOLDDM, letterSpacing:"0.2em", marginBottom:4 }}>LORD CHANCELLOR / MORNING BRIEF</div>
+          <div style={{ ...mono, fontWeight:700, fontSize:14, color:TPRI }}>{brief?.date || new Date().toLocaleDateString("en-US",{ weekday:"long", month:"long", day:"numeric" })}</div>
         </div>
         <button onClick={fetchBrief} disabled={loading} style={{ padding:"7px 14px", background:"rgba(212,151,12,0.1)", border:`1px solid ${BGOLD}`, borderRadius:3, color:loading?TDIM:GOLD, ...mono, fontSize:9, letterSpacing:"0.15em", cursor:loading?"not-allowed":"pointer" }}>
-          {loading ? "GENERATING..." : fetched ? "REFRESH" : "GENERATE BRIEF"}
+          {loading?"GENERATING...":fetched?"REFRESH":"GENERATE BRIEF"}
         </button>
       </div>
-      {brief && <div style={{ ...mono, fontSize:11, color:TSUB, lineHeight:1.9, whiteSpace:"pre-wrap", borderTop:`1px solid ${BORDER}`, paddingTop:12 }}>{brief.brief}</div>}
-      {!brief && !loading && <div style={{ ...mono, fontSize:10, color:TDIM }}>Click GENERATE BRIEF to receive your daily operational summary from THE CIPHER.</div>}
+      {brief  && <div style={{ ...mono, fontSize:11, color:TSUB, lineHeight:1.9, whiteSpace:"pre-wrap", borderTop:`1px solid ${BORDER}`, paddingTop:12 }}>{brief.brief}</div>}
+      {!brief && !loading && <div style={{ ...mono, fontSize:10, color:TDIM }}>Click GENERATE BRIEF to receive your daily operational summary from the Lord Chancellor.</div>}
     </div>
   )
 }
 
+// ─── APP ──────────────────────────────────────────────────────────────────────
+
 export default function App() {
-  const [nav, setNav] = useState("dashboard")
-  const [col, setCol] = useState(false)
-  const [sel, setSel] = useState(null)
-  const [councilOp, setCouncilOp] = useState(null)
-  const [time, setTime] = useState(new Date())
+  const [nav, setNav]               = useState("dashboard")
+  const [col, setCol]               = useState(false)
+  const [sel, setSel]               = useState(null)
+  const [councilOp, setCouncilOp]   = useState(null)
+  const [time, setTime]             = useState(new Date())
   const [escalationCount, setEscalationCount] = useState(0)
 
   useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t) }, [])
@@ -312,25 +428,31 @@ export default function App() {
       .catch(() => {})
   }, [])
 
-  const handleEscalate = async (operative) => {
+  const handleEscalate = async (agent) => {
     try {
-      await fetch("/api/notion?action=escalate", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ title:"Escalation from " + operative.name, operative: operative.name, details:"" }) })
+      await fetch("/api/notion?action=escalate", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ title:"Escalation from " + agent.name, agent: agent.name, details:"" }) })
       setEscalationCount(c => c + 1)
     } catch {}
   }
 
-  const cur = SECTIONS[nav]
+  const openAgent = (agent) => { setSel(agent) }
+
+  const pageTitle = NAV.find(n => n.id === nav)?.label || nav.toUpperCase()
 
   return (
     <>
-      <style>{`* { box-sizing: border-box; margin: 0; padding: 0; } html, body, #root { height: 100%; background: #060606; overflow: hidden; } ::-webkit-scrollbar { width: 2px; } ::-webkit-scrollbar-thumb { background: #5A4418; } input::placeholder { color: #4A4440; }`}</style>
+      <style>{`* { box-sizing:border-box; margin:0; padding:0; } html,body,#root { height:100%; background:#060606; overflow:hidden; } ::-webkit-scrollbar { width:2px; } ::-webkit-scrollbar-thumb { background:#5A4418; } input::placeholder { color:#4A4440; }`}</style>
       <div style={{ display:"flex", height:"100vh", overflow:"hidden", background:BG, paddingRight:sel?420:0, transition:"padding-right 0.25s" }}>
+
         <Sidebar active={nav} setActive={v => { setNav(v); setSel(null) }} col={col} setCol={setCol} />
+
         <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+
+          {/* TOPBAR */}
           <div style={{ height:52, flexShrink:0, borderBottom:`1px solid ${BGOLD}`, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 24px", background:"rgba(6,6,6,0.95)" }}>
             <div>
-              <div style={{ ...mono, fontWeight:700, fontSize:14, color:TPRI, letterSpacing:"0.2em", textTransform:"uppercase" }}>{cur?.label || nav.toUpperCase()}</div>
-              <div style={{ ...mono, fontSize:8, color:TDIM, marginTop:2 }}>{time.toLocaleDateString("en-US", { weekday:"short", month:"short", day:"numeric" }).toUpperCase()} / {time.toLocaleTimeString([], { hour:"2-digit", minute:"2-digit", second:"2-digit" })}</div>
+              <div style={{ ...mono, fontWeight:700, fontSize:14, color:TPRI, letterSpacing:"0.2em", textTransform:"uppercase" }}>{pageTitle}</div>
+              <div style={{ ...mono, fontSize:8, color:TDIM, marginTop:2 }}>{time.toLocaleDateString("en-US",{ weekday:"short", month:"short", day:"numeric" }).toUpperCase()} / {time.toLocaleTimeString([],{ hour:"2-digit", minute:"2-digit", second:"2-digit" })}</div>
             </div>
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
               <div style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 12px", borderRadius:3, background:escalationCount>0?"rgba(196,30,30,0.2)":"rgba(139,26,26,0.1)", border:`1px solid ${escalationCount>0?CRIM:BCRIM}` }}>
@@ -338,68 +460,132 @@ export default function App() {
                 <span style={{ ...mono, fontSize:9, color:escalationCount>0?CRIM:TDIM }}>{escalationCount} ESCALATIONS</span>
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 12px", borderRadius:3, background:"rgba(200,147,10,0.1)", border:`1px solid ${BGOLD}` }}>
-                <span style={{ ...mono, fontSize:9, color:GOLD }}>KC SOVEREIGN</span>
+                <span style={{ ...mono, fontSize:9, color:GOLD }}>♛ SOVEREIGN</span>
               </div>
             </div>
           </div>
+
+          {/* KPI BAR */}
           <div style={{ flexShrink:0, padding:"10px 24px", borderBottom:`1px solid ${BORDER}`, display:"flex", gap:10 }}>
-            <Kpi label="Council Strength" value={ALL.length}      sub="OPERATIVES" ac={GOLD}  />
-            <Kpi label="Active Ventures"  value="1"               sub="KINGDOMS"   ac={GOLD2} />
-            <Kpi label="Revenue Target"   value="$1.5B"           sub="PROJECTION" ac={AMBER} />
-            <Kpi label="Personnel"        value="7"               sub="OPERATORS"  ac={CYAN}  />
-            <Kpi label="Escalations"      value={escalationCount} sub="OPEN"       ac={escalationCount>0?CRIM:TDIM} />
+            <Kpi label="Total Agents"    value={43}                sub="DEPLOYED"   ac={GOLD}  />
+            <Kpi label="Inner Council"   value={7}                 sub="ADVISORS"   ac={AMBER} />
+            <Kpi label="Ministers"       value={12}                sub="TIER II"    ac={CYAN}  />
+            <Kpi label="Operatives"      value={24}                sub="TIER III"   ac={PURPLE}/>
+            <Kpi label="Escalations"     value={escalationCount}   sub="OPEN"       ac={escalationCount>0?CRIM:TDIM} />
           </div>
+
+          {/* MAIN CONTENT */}
           <div style={{ flex:1, overflowY:"auto", padding:"20px 24px" }}>
-            {nav==="dashboard" && (
+
+            {/* ── DASHBOARD ── */}
+            {nav === "dashboard" && (
               <div>
                 <MorningBrief />
-                <SectionHeader label="FULL COUNCIL" count={ALL.length} />
-                <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-                  {ALL.map(m => (
-                    <button key={m.id} onClick={() => setSel(m)} style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 12px", borderRadius:3, background:sel?.id===m.id?"rgba(200,147,10,0.1)":"transparent", border:`1px solid ${sel?.id===m.id?BGOLD:BORDER}`, color:sel?.id===m.id?GOLD:TSUB, ...mono, fontSize:9, textTransform:"uppercase", cursor:"pointer" }}>
-                      <span style={{ ...mono, fontSize:8, color:m.ac, border:`1px solid ${m.ac}40`, padding:"1px 4px", borderRadius:2 }}>{m.icon}</span>
-                      <span>{m.name}</span>
-                    </button>
-                  ))}
+                <SectionHeader label="FULL COUNCIL — QUICK ACCESS" count={43} />
+                <div style={{ display:"flex", flexWrap:"wrap", gap:5, marginBottom:24 }}>
+                  {ALL_AGENTS.map(m => <AgentCard key={m.id} m={m} onClick={openAgent} sel={sel?.id===m.id} compact />)}
                 </div>
               </div>
             )}
-            {nav==="ventures" && (
+
+            {/* ── SOVEREIGN ── */}
+            {nav === "sovereign" && (
+              <div>
+                <SectionHeader label="TIER I — THE SOVEREIGN" ac={GOLD} sub="Human in Command · Final Authority" />
+                <SovereignNode onClick={openAgent} sel={sel?.id==="sovereign"} />
+                <div style={{ maxWidth:600, margin:"0 auto", background:BGCARD, border:`1px solid ${BGOLD}`, borderRadius:4, padding:"20px 24px" }}>
+                  <div style={{ ...mono, fontSize:9, color:GOLDDM, letterSpacing:"0.15em", marginBottom:10 }}>SOVEREIGN MANDATE</div>
+                  <div style={{ ...mono, fontSize:11, color:TSUB, lineHeight:1.8 }}>
+                    You hold the ultimate vision and final veto on all decisions. No AI agent acts outside your intent. Your role is to set direction, resolve conflicts between ministers, and define what the kingdom stands for.{"\n\n"}The Council exists to serve your vision — not to replace your judgment.
+                  </div>
+                  <div style={{ marginTop:16, display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+                    {["Set kingdom vision & core values","Approve major initiatives","Break ties between ministers","Redefine agent mandates","Grant and revoke agent authority","Define what the kingdom stands for"].map(p => (
+                      <div key={p} style={{ display:"flex", gap:6, alignItems:"flex-start" }}>
+                        <span style={{ color:GOLDDM, fontSize:7, marginTop:3 }}>◆</span>
+                        <span style={{ ...mono, fontSize:10, color:TSUB }}>{p}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── INNER COUNCIL ── */}
+            {nav === "council" && (
+              <div>
+                <SectionHeader label="INNER COUNCIL" count={7} ac={AMBER} sub="Direct Advisors to the Sovereign" />
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(210px, 1fr))", gap:10 }}>
+                  {COUNCIL.map(m => <AgentCard key={m.id} m={m} onClick={openAgent} sel={sel?.id===m.id} />)}
+                </div>
+              </div>
+            )}
+
+            {/* ── MINISTERS ── */}
+            {nav === "ministers" && (
+              <div>
+                <SectionHeader label="TIER II — THE TWELVE MINISTERS" count={12} ac={CYAN} sub="Executive Domain Authorities" />
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(210px, 1fr))", gap:10 }}>
+                  {MINISTERS.map(m => <AgentCard key={m.id} m={m} onClick={openAgent} sel={sel?.id===m.id} />)}
+                </div>
+              </div>
+            )}
+
+            {/* ── OPERATIVES ── */}
+            {nav === "operatives" && (
+              <div>
+                <SectionHeader label="TIER III — 24 POLAR OPERATIVES" count={24} ac={PURPLE} sub="2 per Minister · Light & Dark Polarity" />
+                <div style={{ display:"flex", gap:12, marginBottom:12 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                    <span style={{ fontSize:8, ...mono, padding:"2px 7px", borderRadius:2, background:"rgba(255,220,100,0.1)", border:"1px solid rgba(255,220,100,0.3)", color:"#FFD860" }}>☀ LIGHT</span>
+                    <span style={{ ...mono, fontSize:9, color:TDIM }}>Offensive · Generative · Outward</span>
+                  </div>
+                  <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                    <span style={{ fontSize:8, ...mono, padding:"2px 7px", borderRadius:2, background:"rgba(120,80,200,0.1)", border:"1px solid rgba(120,80,200,0.3)", color:"#AA80FF" }}>🌑 DARK</span>
+                    <span style={{ ...mono, fontSize:9, color:TDIM }}>Defensive · Protective · Inward</span>
+                  </div>
+                </div>
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:12 }}>
+                  {MINISTERS.map(m => <OperativePair key={m.id} minister={m} onClick={openAgent} sel={sel} />)}
+                </div>
+              </div>
+            )}
+
+            {/* ── VENTURES ── */}
+            {nav === "ventures" && (
               <div>
                 <SectionHeader label="ACTIVE KINGDOMS" count={1} />
-                <div style={{ background:BGCARD, border:`1px solid ${BGOLD}`, borderRadius:4, padding:"24px", position:"relative" }}>
+                <div style={{ background:BGCARD, border:`1px solid ${BGOLD}`, borderRadius:4, padding:"24px", position:"relative", maxWidth:600 }}>
                   <div style={{ position:"absolute", top:0, left:0, right:0, height:1, background:`linear-gradient(90deg,transparent,${GOLD},transparent)` }} />
                   <div style={{ ...mono, fontSize:8, color:TDIM, letterSpacing:"0.2em", marginBottom:8 }}>VENTURE CLASSIFICATION: PRIMARY</div>
                   <div style={{ ...mono, fontWeight:700, fontSize:18, color:TPRI, marginBottom:16 }}>KINGDOM ALPHA</div>
                   <div style={{ display:"flex", gap:28, flexWrap:"wrap" }}>
-                    {[["REVENUE","UNDISCLOSED",TSUB],["PROJECTION","$1.5B",GOLD],["PERSONNEL","7 OPERATORS",CYAN],["STATUS","SCALING",AMBER]].map(([l,v,a]) => (
+                    {[["REVENUE","UNDISCLOSED",TSUB],["PROJECTION","$1.5B",GOLD],["AI AGENTS","43 DEPLOYED",CYAN],["STATUS","SCALING",AMBER]].map(([l,v,a]) => (
                       <div key={l}><div style={{ ...mono, fontSize:8, color:TDIM, marginBottom:4 }}>{l}</div><div style={{ ...mono, fontWeight:700, fontSize:13, color:a }}>{v}</div></div>
                     ))}
                   </div>
                 </div>
               </div>
             )}
-            {nav==="intel" && (
+
+            {/* ── INTEL ── */}
+            {nav === "intel" && (
               <div>
                 <SectionHeader label="INTELLIGENCE FEED" count={0} ac={CRIM} />
                 <div style={{ background:BGCARD, border:`1px solid ${BCRIM}`, borderRadius:4, padding:"32px", textAlign:"center" }}>
                   <div style={{ ...mono, color:TSUB, fontSize:11, marginBottom:6 }}>NO ACTIVE INTELLIGENCE BRIEFS</div>
-                  <div style={{ ...mono, color:TDIM, fontSize:9, marginBottom:16 }}>DEPLOY THE SHADOW TO BEGIN SURVEILLANCE OPERATIONS</div>
-                  <button onClick={() => { setNav("strategic"); setTimeout(() => setSel(ROSTER.strategic.find(m => m.id==="shadow")), 150) }} style={{ padding:"7px 18px", borderRadius:3, background:"rgba(196,30,30,0.1)", border:`1px solid ${BCRIM}`, color:CRIM, ...mono, fontSize:9, cursor:"pointer" }}>DEPLOY THE SHADOW</button>
+                  <div style={{ ...mono, color:TDIM, fontSize:9, marginBottom:16 }}>DEPLOY THE MINISTER OF SHADOWS OR ANALYST TO BEGIN SURVEILLANCE OPERATIONS</div>
+                  <div style={{ display:"flex", gap:10, justifyContent:"center" }}>
+                    <button onClick={() => { setNav("ministers"); setTimeout(() => setSel(MINISTERS.find(m => m.id==="shadows")), 150) }} style={{ padding:"7px 18px", borderRadius:3, background:"rgba(196,30,30,0.1)", border:`1px solid ${BCRIM}`, color:CRIM, ...mono, fontSize:9, cursor:"pointer" }}>DEPLOY SHADOWS</button>
+                    <button onClick={() => { setNav("operatives"); setTimeout(() => setSel(OPERATIVES.find(o => o.id==="analyst")), 150) }} style={{ padding:"7px 18px", borderRadius:3, background:"rgba(136,85,204,0.1)", border:`1px solid ${PURPLE}40`, color:PURPLE, ...mono, fontSize:9, cursor:"pointer" }}>DEPLOY ANALYST</button>
+                  </div>
                 </div>
               </div>
             )}
-            {cur && (
-              <div>
-                <SectionHeader label={cur.label} count={cur.members.length} ac={cur.ac} />
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(200px, 1fr))", gap:10 }}>
-                  {cur.members.map(m => <Card key={m.id} m={m} onClick={setSel} sel={sel?.id===m.id} />)}
-                </div>
-              </div>
-            )}
+
           </div>
         </div>
       </div>
+
       {sel && <Chat m={sel} onClose={() => setSel(null)} onEscalate={handleEscalate} onCouncil={() => { setCouncilOp(sel.id); setSel(null) }} />}
       {councilOp && <CouncilSession primaryOperative={councilOp} onClose={() => setCouncilOp(null)} />}
     </>
