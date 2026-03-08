@@ -10,8 +10,7 @@
   },
   "dependencies": {
   "jose": "^5.0.0",
-  "react": "^18.0.0",
-  ...
+  "react": "^18.0.0"
 }
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
