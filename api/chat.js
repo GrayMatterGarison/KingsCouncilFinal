@@ -4,6 +4,115 @@
 import { buildSystemPrompt } from './context.js'
 
 // ─────────────────────────────────────────────────────────────────────────────
+// WRITE PROPOSAL SUFFIX
+// Appended to every agent prompt so the agent knows how and when to propose
+// a write. The Sovereign must tap Approve in the UI before anything is logged.
+// Each agent gets a target that matches their domain KB in Notion.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const WRITE_TARGETS = {
+  // Tier I
+  sovereign:    null, // Sovereign doesn't write — they approve
+
+  // Inner Council
+  chancellor:   'Decisions Log',
+  oracle:       'Knowledge Base · Oracle Reports',
+  scribe:       'Royal Records',
+  devil:        'Risk Register',
+  truthteller:  'Ground Truth Reports',
+  inspector:    'Audit Log',
+  visionary:    'Strategic Vision Log',
+
+  // Ministers
+  war:          'War Room · Strategic Intelligence',
+  economics:    'Treasury · Economic Records',
+  justice:      'Kingdom Laws & Policies',
+  shadows:      'Intelligence Vault · Shadows Dossier',
+  people:       'People & Culture Records',
+  herald:       'Herald Archives · Narrative Records',
+  builder:      'Project Registry · Builder Log',
+  philosopher:  'Kingdom Philosophy · Values Codex',
+  foreign:      'Foreign Affairs · Alliance Registry',
+  continuity:   'Continuity Plans · Crisis Protocols',
+  pioneer:      'Frontiers Lab · Experiment Log',
+  knowledge:    'Kingdom Knowledge Base',
+
+  // Operatives — War
+  tactician:    'War Room · Tactical Plans',
+  sentinel:     'War Room · Threat Register',
+
+  // Operatives — Economics
+  trader:       'Treasury · Deal Pipeline',
+  auditor:      'Treasury · Audit Reports',
+
+  // Operatives — Justice
+  lawmaker:     'Kingdom Laws & Policies · Legislation',
+  enforcer:     'Kingdom Laws · Enforcement Rulings',
+
+  // Operatives — Shadows
+  analyst:      'Intelligence Vault · Analyst Reports',
+  counterintel: 'Intelligence Vault · OpSec Protocols',
+
+  // Operatives — People
+  recruiter:    'People & Culture · Recruitment Records',
+  keeper:       'People & Culture · Loyalty Records',
+
+  // Operatives — Herald
+  writer:       'Herald Archives · Content Library',
+  historian:    'Royal Archives · Historical Record',
+
+  // Operatives — Builder
+  architect:    'Project Registry · Design Blueprints',
+  engineer:     'Project Registry · Build Log',
+
+  // Operatives — Philosopher
+  ethicist:     'Kingdom Philosophy · Ethics Case Law',
+  inquisitor:   'Kingdom Philosophy · Inquisitor Reports',
+
+  // Operatives — Foreign
+  envoy:        'Foreign Affairs · Envoy Reports',
+  watcher:      'Foreign Affairs · Watcher Intelligence',
+
+  // Operatives — Continuity
+  resilience:   'Continuity Plans · Resilience Designs',
+  crisis:       'Continuity Plans · Crisis Log',
+
+  // Operatives — Frontiers
+  scout:        'Frontiers Lab · Scout Reports',
+  integrator:   'Frontiers Lab · Integration Plans',
+
+  // Operatives — Knowledge
+  pedagogue:    'Kingdom Knowledge Base · Training Programs',
+  curator:      'Kingdom Knowledge Base · Curated Archives',
+}
+
+// Builds the write proposal suffix for a given agent.
+// Returns empty string for the Sovereign (no write capability).
+function writeProposalSuffix(agentId) {
+  const target = WRITE_TARGETS[agentId]
+  if (!target) return ''
+
+  return `
+
+─────────────────────────────────────────
+WRITE PROPOSAL PROTOCOL
+─────────────────────────────────────────
+When you have produced analysis, a decision record, a plan, a ruling, or any output worth preserving in the Kingdom's databases, propose a write at the END of your response using this EXACT format:
+
+[WRITE_PROPOSAL]
+target: ${target}
+content: <the concise record to be written — 1 to 5 sentences, self-contained>
+[/WRITE_PROPOSAL]
+
+Rules:
+- Only propose a write when the output genuinely warrants a permanent record. Not every message needs one.
+- The Sovereign must approve before anything is written. You are proposing, not executing.
+- Keep content concise and self-contained — it will be read without conversation context.
+- Place the block at the very end of your response, after your main reply.
+- Never propose more than one write per response.`
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // V3 AGENT REGISTRY — 43 agents across 4 tiers
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -268,7 +377,6 @@ Tone: Systematic. Teaching. Forward-building. Address as Sovereign.`,
 
   // ── TIER III — POLAR OPERATIVES ───────────────────────────────────────────
 
-  // War
   tactician: {
     name: 'TACTICIAN',
     tier: 'operative',
@@ -299,7 +407,6 @@ Ensure the Kingdom is never successfully attacked. For any threat: How real is i
 Tone: Vigilant. Protective. Layered-thinking. Address as Sovereign.`,
   },
 
-  // Economics
   trader: {
     name: 'TRADE ENVOY',
     tier: 'operative',
@@ -330,7 +437,6 @@ Financial precision is your religion. Track every resource flow, produce accurat
 Tone: Precise. Analytical. Inward-protective. Address as Sovereign.`,
   },
 
-  // Justice
   lawmaker: {
     name: 'LAWMAKER',
     tier: 'operative',
@@ -361,7 +467,6 @@ Rules without enforcement are suggestions. When a violation occurs: investigate 
 Tone: Fair. Firm. Precedent-building. Address as Sovereign.`,
   },
 
-  // Shadows
   analyst: {
     name: 'ANALYST',
     tier: 'operative',
@@ -392,7 +497,6 @@ You don't just observe threats — you neutralize them. Two modes: 1) Defensive:
 Tone: Cold. Precise. Traceless. Address as Sovereign.`,
   },
 
-  // People
   recruiter: {
     name: 'RECRUITER',
     tier: 'operative',
@@ -423,7 +527,6 @@ You face inward, holding the Kingdom together. Monitor the temperature constantl
 Tone: Empathetic. Vigilant. Relationship-first. Address as Sovereign.`,
   },
 
-  // Herald
   writer: {
     name: 'ROYAL WRITER',
     tier: 'operative',
@@ -454,7 +557,6 @@ You preserve the Kingdom's soul across time. Document not just what happened, bu
 Tone: Archival. Narrative. Legacy-focused. Address as Sovereign.`,
   },
 
-  // Builder
   architect: {
     name: 'ARCHITECT',
     tier: 'operative',
@@ -485,7 +587,6 @@ You build what others design. Reliable execution is your craft. For any build ta
 Tone: Methodical. Execution-first. Reliable. Address as Sovereign.`,
   },
 
-  // Philosopher
   ethicist: {
     name: 'ROYAL ETHICIST',
     tier: 'operative',
@@ -516,7 +617,6 @@ Stress-test what the Kingdom believes. For any stated value or principle: Is thi
 Tone: Adversarial. Philosophical. Relentlessly honest. Address as Sovereign.`,
   },
 
-  // Foreign
   envoy: {
     name: 'ROYAL ENVOY',
     tier: 'operative',
@@ -547,7 +647,6 @@ You observe the external world in silence. Know what is happening out there befo
 Tone: Silent. Observant. Pattern-reading. Address as Sovereign.`,
   },
 
-  // Continuity
   resilience: {
     name: 'RESILIENCE ARCHITECT',
     tier: 'operative',
@@ -578,7 +677,6 @@ When activated, normal rules compress. Stabilize, contain, restore. For any emer
 Tone: Direct. Fast. Command-mode. Address as Sovereign.`,
   },
 
-  // Frontiers
   scout: {
     name: 'SCOUT',
     tier: 'operative',
@@ -609,7 +707,6 @@ The Scout finds it — you make it real inside the Kingdom. Take frontier discov
 Tone: Pragmatic. Change-managing. Value-realizing. Address as Sovereign.`,
   },
 
-  // Knowledge
   pedagogue: {
     name: 'PEDAGOGUE',
     tier: 'operative',
@@ -654,7 +751,6 @@ export default async function handler(req, res) {
 
   const { messages, agentId, operativeId, systemPrompt: overridePrompt } = req.body
 
-  // Support both agentId (v3) and operativeId (v1 legacy) param names
   const id = agentId || operativeId
 
   if (!messages || !Array.isArray(messages)) {
@@ -671,14 +767,16 @@ export default async function handler(req, res) {
     || (agent ? agent.prompt : null)
     || 'You are a Kingdom Intelligence operative. Be direct and precise. Address as Sovereign.'
 
+  // Append write proposal protocol to the base prompt (before context injection)
+  const promptWithWrite = basePrompt + writeProposalSuffix(id)
+
   // Inject Notion context if available
-  let systemPrompt = basePrompt
+  let systemPrompt = promptWithWrite
   if (id && process.env.NOTION_TOKEN) {
     try {
-      systemPrompt = await buildSystemPrompt(id, basePrompt)
+      systemPrompt = await buildSystemPrompt(id, promptWithWrite)
     } catch {
-      // Fall back gracefully to base prompt without context
-      systemPrompt = basePrompt
+      systemPrompt = promptWithWrite
     }
   }
 
