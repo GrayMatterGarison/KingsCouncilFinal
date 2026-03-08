@@ -1,5 +1,5 @@
 // api/notion.js
-// Serverless function — Notion integration, token stays server-side
+// Notion integration — shared queries (escalations, tasks, ventures)
 
 const NOTION_VERSION = '2022-06-28'
 
@@ -25,7 +25,6 @@ export default async function handler(req, res) {
   const { action } = req.query
 
   try {
-    // ── GET ESCALATIONS ─────────────────────────────────────────
     if (req.method === 'GET' && action === 'escalations') {
       const dbId = process.env.NOTION_ESCALATION_DB_ID
       if (!dbId) return res.status(200).json({ results: [] })
@@ -37,7 +36,6 @@ export default async function handler(req, res) {
       return res.status(200).json(data)
     }
 
-    // ── GET TASKS ────────────────────────────────────────────────
     if (req.method === 'GET' && action === 'tasks') {
       const dbId = process.env.NOTION_TASKS_DB_ID
       if (!dbId) return res.status(200).json({ results: [] })
@@ -49,7 +47,6 @@ export default async function handler(req, res) {
       return res.status(200).json(data)
     }
 
-    // ── GET VENTURES ─────────────────────────────────────────────
     if (req.method === 'GET' && action === 'ventures') {
       const dbId = process.env.NOTION_VENTURES_DB_ID
       if (!dbId) return res.status(200).json({ results: [] })
@@ -60,23 +57,6 @@ export default async function handler(req, res) {
       return res.status(200).json(data)
     }
 
-    // ── LOG DECISION ─────────────────────────────────────────────
-    if (req.method === 'POST' && action === 'log-decision') {
-      const dbId = process.env.NOTION_DECISIONS_DB_ID
-      if (!dbId) return res.status(200).json({ success: false, reason: 'No DB configured' })
-      const { title, operative, summary } = req.body
-      const data = await notionRequest('/pages', 'POST', {
-        parent: { database_id: dbId },
-        properties: {
-          'Name': { title: [{ text: { content: title || 'Decision' } }] },
-          'Operative': { rich_text: [{ text: { content: operative || '' } }] },
-          'Summary': { rich_text: [{ text: { content: summary || '' } }] },
-        },
-      })
-      return res.status(200).json({ success: true, id: data.id })
-    }
-
-    // ── LOG ESCALATION ───────────────────────────────────────────
     if (req.method === 'POST' && action === 'escalate') {
       const dbId = process.env.NOTION_ESCALATION_DB_ID
       if (!dbId) return res.status(200).json({ success: false, reason: 'No DB configured' })
