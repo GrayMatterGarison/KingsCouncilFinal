@@ -1,3 +1,5 @@
+import { requireAuth } from './auth.js'
+
 // api/write.js
 // Executes a Sovereign-approved agent write action to the agent's Notion database.
 // Parses markdown-style content into Notion blocks for rich, structured documents.
@@ -113,6 +115,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+  if (!await requireAuth(req, res)) return
 
   const { agentId, agentName, target, content, venture = 'Kingdom Alpha' } = req.body
 
