@@ -1,5 +1,5 @@
 // api/brief.js
-// The Cipher's morning brief — aggregates Notion tasks + escalations,
+// Lord Chancellor's morning brief — aggregates Notion tasks + escalations,
 // passes to Claude, returns structured brief for the dashboard
 
 const NOTION_VERSION = '2022-06-28'
@@ -72,7 +72,7 @@ ACTIVE VENTURES (${ventures.length}):
 ${ventures.map(v => `- ${extractTitle(v)}`).join('\n') || '- Kingdom Alpha'}
 `.trim()
 
-    // Ask Claude to synthesize the brief
+    // Lord Chancellor synthesizes the brief
     const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -83,7 +83,7 @@ ${ventures.map(v => `- ${extractTitle(v)}`).join('\n') || '- Kingdom Alpha'}
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 800,
-        system: `You are THE CIPHER, Chief of Staff to the Sovereign. Generate a morning brief from the Kingdom's operational data. Be direct and tactical. Format: 1) STATUS (one line: GREEN/YELLOW/RED + one sentence why), 2) PRIORITY ACTIONS (max 3 bullet points, action-oriented), 3) WATCH LIST (1-2 items requiring Sovereign attention). Keep total under 150 words. Military precision.`,
+        system: `You are the Lord Chancellor, Chief of Staff to the Sovereign. Generate a morning brief from the Kingdom's operational data. Translate sovereign vision into coordinated action. Be direct and tactical. Format: 1) STATUS (one line: GREEN/YELLOW/RED + one sentence why), 2) PRIORITY ACTIONS (max 3 bullet points, action-oriented), 3) WATCH LIST (1-2 items requiring Sovereign attention). Keep total under 150 words. Military precision. Address the Sovereign directly.`,
         messages: [{ role: 'user', content: `Generate morning brief from this data:\n\n${context}` }],
       }),
     })
@@ -100,6 +100,7 @@ ${ventures.map(v => `- ${extractTitle(v)}`).join('\n') || '- Kingdom Alpha'}
         ventures: ventures.length,
       },
     })
+
   } catch (err) {
     console.error('Brief error:', err)
     return res.status(500).json({ error: 'Failed to generate brief' })
