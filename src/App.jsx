@@ -706,8 +706,6 @@ function WriteLogModal({ entries, onClose }) {
 export default function App() {
   const [authed, setAuthed] = useState(() => !!localStorage.getItem(TOKEN_KEY))
 
-  if (!authed) return <LoginScreen onAuth={() => setAuthed(true)} />
-
   const [nav, setNav]               = useState("dashboard")
   const [col, setCol]               = useState(false)
   const [sel, setSel]               = useState(null)
@@ -744,6 +742,8 @@ export default function App() {
   const openAgent = (agent) => { setSel(agent) }
 
   const pageTitle = NAV.find(n => n.id === nav)?.label || nav.toUpperCase()
+
+  if (!authed) return <LoginScreen onAuth={() => setAuthed(true)} />
 
   return (
     <>
