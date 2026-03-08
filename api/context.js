@@ -1,28 +1,75 @@
 // api/context.js
-// Fetches Kingdom Context + operative memory from Notion
+// Fetches Kingdom Context + agent memory from Notion
 // Injected into every agent call as enriched system prompt
+// Kingdom Intelligence Architecture v3 — 43 agents
 
 const NOTION_VERSION = '2022-06-28'
 const KINGDOM_CONTEXT_PAGE_ID = '31d7753f916481e5ab8beff6fbd4bebf'
 
+// ─────────────────────────────────────────────────────────────────────────────
+// V3 DB MAP — maps agentId → Vercel env var name
+// ─────────────────────────────────────────────────────────────────────────────
 const DB_MAP = {
-  cipher:    'NOTION_DB_CIPHER',
-  vault:     'NOTION_DB_VAULT',
-  oracle:    'NOTION_DB_ORACLE',
-  shadow:    'NOTION_DB_SHADOW',
-  commander: 'NOTION_DB_COMMANDER',
-  director:  'NOTION_DB_DIRECTOR',
-  marshal:   'NOTION_DB_MARSHAL',
-  operator:  'NOTION_DB_OPERATOR',
-  scriptor:  'NOTION_DB_SCRIPTOR',
-  lens:      'NOTION_DB_LENS',
-  vanguard:  'NOTION_DB_VANGUARD',
-  signal:    'NOTION_DB_SIGNAL',
-  reel:      'NOTION_DB_REEL',
-  broker:    'NOTION_DB_BROKER',
-  warden:    'NOTION_DB_WARDEN',
-  architect: 'NOTION_DB_ARCHITECT',
+
+  // Tier I
+  sovereign:    'NOTION_DB_SOVEREIGN',
+
+  // Inner Council
+  chancellor:   'NOTION_DB_CHANCELLOR',
+  oracle:       'NOTION_DB_ORACLE',
+  scribe:       'NOTION_DB_SCRIBE',
+  devil:        'NOTION_DB_DEVIL',
+  truthteller:  'NOTION_DB_TRUTHTELLER',
+  inspector:    'NOTION_DB_INSPECTOR',
+  visionary:    'NOTION_DB_VISIONARY',
+
+  // Tier II — Ministers
+  war:          'NOTION_DB_WAR',
+  economics:    'NOTION_DB_ECONOMICS',
+  justice:      'NOTION_DB_JUSTICE',
+  shadows:      'NOTION_DB_SHADOWS',
+  people:       'NOTION_DB_PEOPLE',
+  herald:       'NOTION_DB_HERALD',
+  builder:      'NOTION_DB_BUILDER',
+  philosopher:  'NOTION_DB_PHILOSOPHER',
+  foreign:      'NOTION_DB_FOREIGN',
+  continuity:   'NOTION_DB_CONTINUITY',
+  pioneer:      'NOTION_DB_PIONEER',
+  knowledge:    'NOTION_DB_KNOWLEDGE',
+
+  // Tier III — Operatives
+  tactician:    'NOTION_DB_TACTICIAN',
+  sentinel:     'NOTION_DB_SENTINEL',
+  trader:       'NOTION_DB_TRADER',
+  auditor:      'NOTION_DB_AUDITOR',
+  lawmaker:     'NOTION_DB_LAWMAKER',
+  enforcer:     'NOTION_DB_ENFORCER',
+  analyst:      'NOTION_DB_ANALYST',
+  counterintel: 'NOTION_DB_COUNTERINTEL',
+  recruiter:    'NOTION_DB_RECRUITER',
+  keeper:       'NOTION_DB_KEEPER',
+  writer:       'NOTION_DB_WRITER',
+  historian:    'NOTION_DB_HISTORIAN',
+  architect:    'NOTION_DB_ARCHITECT',
+  engineer:     'NOTION_DB_ENGINEER',
+  ethicist:     'NOTION_DB_ETHICIST',
+  inquisitor:   'NOTION_DB_INQUISITOR',
+  envoy:        'NOTION_DB_ENVOY',
+  watcher:      'NOTION_DB_WATCHER',
+  resilience:   'NOTION_DB_RESILIENCE',
+  crisis:       'NOTION_DB_CRISIS',
+  scout:        'NOTION_DB_SCOUT',
+  integrator:   'NOTION_DB_INTEGRATOR',
+  pedagogue:    'NOTION_DB_PEDAGOGUE',
+  curator:      'NOTION_DB_CURATOR',
 }
+
+// Full list of all agent IDs for COUNCIL_CALL reference
+const ALL_AGENT_IDS = Object.keys(DB_MAP)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NOTION HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
 
 async function notionGet(path) {
   const res = await fetch(`https://api.notion.com/v1${path}`, {
@@ -58,6 +105,10 @@ function extractText(blocks) {
   }).filter(Boolean).join('\n')
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CONTEXT FETCHERS
+// ─────────────────────────────────────────────────────────────────────────────
+
 async function getKingdomContext() {
   if (!process.env.NOTION_TOKEN) return ''
   try {
@@ -66,12 +117,16 @@ async function getKingdomContext() {
   } catch { return '' }
 }
 
-async function getOperativeMemory(operativeId, limit = 5) {
+async function getAgentMemory(agentId, limit = 5) {
   if (!process.env.NOTION_TOKEN) return ''
-  const envKey = DB_MAP[operativeId]
+
+  // Support both v3 agentId and v1 operativeId (legacy)
+  const envKey = DB_MAP[agentId]
   if (!envKey) return ''
+
   const dbId = process.env[envKey]
   if (!dbId) return ''
+
   try {
     const data = await notionPost(`/databases/${dbId}/query`, {
       filter: {
@@ -84,22 +139,29 @@ async function getOperativeMemory(operativeId, limit = 5) {
       sorts: [{ timestamp: 'created_time', direction: 'descending' }],
       page_size: limit,
     })
+
     if (!data.results || data.results.length === 0) return ''
+
     return data.results.map(r => {
       const props = r.properties || {}
-      const entry = props.Entry?.title?.[0]?.plain_text || ''
-      const type = props.Type?.select?.name || ''
+      const entry   = props.Entry?.title?.[0]?.plain_text || ''
+      const type    = props.Type?.select?.name || ''
       const summary = props.Summary?.rich_text?.[0]?.plain_text || ''
       const content = props['Full Content']?.rich_text?.[0]?.plain_text || ''
       return `[${type.toUpperCase()}] ${entry}\n${summary || content}`.trim()
     }).join('\n\n---\n\n')
+
   } catch { return '' }
 }
 
-export async function buildSystemPrompt(operativeId, basePrompt) {
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN EXPORT — builds enriched system prompt
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function buildSystemPrompt(agentId, basePrompt) {
   const [kingdomCtx, memory] = await Promise.all([
     getKingdomContext(),
-    getOperativeMemory(operativeId)
+    getAgentMemory(agentId),
   ])
 
   let enriched = basePrompt
@@ -113,18 +175,26 @@ export async function buildSystemPrompt(operativeId, basePrompt) {
   }
 
   enriched += `\n\n━━━ COUNCIL PROTOCOL ━━━
-You are part of a multi-agent system. When you detect your directive requires another operative's domain expertise, you MAY signal a delegation by including a JSON block at the END of your response in this exact format:
+You are part of a 43-agent Kingdom Intelligence Architecture. When your response requires expertise outside your domain, you MAY signal a delegation by appending a JSON block at the END of your response in this exact format:
 
 <COUNCIL_CALL>
-{"delegate": ["operative_id_1", "operative_id_2"], "brief": "One sentence briefing for the called operatives"}
+{"delegate": ["agent_id_1", "agent_id_2"], "brief": "One sentence briefing for the called agents"}
 </COUNCIL_CALL>
 
-Operative IDs: cipher, vault, oracle, shadow, commander, director, marshal, operator, scriptor, lens, vanguard, signal, reel, broker, warden, architect
+Agent IDs you can delegate to:
+TIER I: sovereign
+INNER COUNCIL: chancellor, oracle, scribe, devil, truthteller, inspector, visionary
+MINISTERS: war, economics, justice, shadows, people, herald, builder, philosopher, foreign, continuity, pioneer, knowledge
+OPERATIVES: tactician, sentinel, trader, auditor, lawmaker, enforcer, analyst, counterintel, recruiter, keeper, writer, historian, architect, engineer, ethicist, inquisitor, envoy, watcher, resilience, crisis, scout, integrator, pedagogue, curator
 
-Only call other operatives when genuinely needed. Do not call yourself. Always complete your own domain response first, then append the COUNCIL_CALL block if needed.`
+Rules: Only delegate when genuinely needed. Never delegate to yourself. Always complete your own domain response first, then append the COUNCIL_CALL block if needed.`
 
   return enriched
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// API HANDLER — exposes context fetch as a standalone endpoint
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -132,12 +202,15 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
   if (req.method === 'OPTIONS') return res.status(200).end()
 
-  const { operativeId } = req.body || {}
-  if (!operativeId) return res.status(400).json({ error: 'Missing operativeId' })
+  // Support both agentId (v3) and operativeId (v1 legacy)
+  const { agentId, operativeId } = req.body || {}
+  const id = agentId || operativeId
+
+  if (!id) return res.status(400).json({ error: 'Missing agentId' })
 
   const [kingdomCtx, memory] = await Promise.all([
     getKingdomContext(),
-    getOperativeMemory(operativeId)
+    getAgentMemory(id),
   ])
 
   return res.status(200).json({ kingdomCtx, memory })
