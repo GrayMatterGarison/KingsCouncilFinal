@@ -321,6 +321,7 @@ function PhaseBar({ currentPhase }) {
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function SovereignCouncilSession({ onClose, onStore }) {
   const [problem, setProblem] = useState("")
+  const [artifactType, setArtifactType] = useState("")
   const [phase, setPhase] = useState("idle") // idle | framing | deliberation | synthesis | artifact | done | error
   const [events, setEvents] = useState([])
   const [artifact, setArtifact] = useState(null)
@@ -346,7 +347,7 @@ export default function SovereignCouncilSession({ onClose, onStore }) {
     try {
       const res = await authFetch("/api/sovereign-council", {
         method: "POST",
-        body: JSON.stringify({ problem: problem.trim() }),
+        body: JSON.stringify({ problem: problem.trim(), ...(artifactType ? { artifactType } : {}) }),
       })
 
       if (!res.ok) {
@@ -497,20 +498,39 @@ export default function SovereignCouncilSession({ onClose, onStore }) {
             }}
           />
         </div>
-        <button
-          onClick={convene}
-          disabled={isRunning || !problem.trim()}
-          style={{
-            padding: "9px 20px", borderRadius: 3, flexShrink: 0,
-            background: isRunning ? "transparent" : "rgba(200,147,10,0.15)",
-            border: `1px solid ${isRunning ? BORDER : BGOLD}`,
-            color: isRunning ? TDIM : GOLD, ...mono, fontSize: 10,
-            cursor: isRunning || !problem.trim() ? "not-allowed" : "pointer",
-            letterSpacing: "0.1em", marginTop: isRunning ? 0 : 22,
-          }}
-        >
-          {isRunning ? "IN SESSION..." : phase === "done" ? "NEW SESSION" : "CONVENE COUNCIL"}
-        </button>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, flexShrink: 0, marginTop: isRunning ? 0 : 22 }}>
+          {!isRunning && (
+            <select
+              value={artifactType}
+              onChange={e => setArtifactType(e.target.value)}
+              style={{
+                background: "rgba(255,255,255,0.03)", border: `1px solid ${BORDER}`,
+                borderRadius: 3, padding: "6px 10px", color: artifactType ? TPRI : TDIM,
+                ...mono, fontSize: 9, cursor: "pointer", outline: "none",
+              }}
+            >
+              <option value="">AUTO-DETECT TYPE</option>
+              <option value="code_spec">CODE SPEC — build software feature</option>
+              <option value="sop">SOP — human-executed workflow</option>
+              <option value="automation_spec">AUTOMATION — no-code (Zapier/Make)</option>
+              <option value="executable_code">EXECUTABLE CODE — standalone script</option>
+            </select>
+          )}
+          <button
+            onClick={convene}
+            disabled={isRunning || !problem.trim()}
+            style={{
+              padding: "9px 20px", borderRadius: 3,
+              background: isRunning ? "transparent" : "rgba(200,147,10,0.15)",
+              border: `1px solid ${isRunning ? BORDER : BGOLD}`,
+              color: isRunning ? TDIM : GOLD, ...mono, fontSize: 10,
+              cursor: isRunning || !problem.trim() ? "not-allowed" : "pointer",
+              letterSpacing: "0.1em",
+            }}
+          >
+            {isRunning ? "IN SESSION..." : phase === "done" ? "NEW SESSION" : "CONVENE COUNCIL"}
+          </button>
+        </div>
       </div>
 
       {/* STATUS LINE */}

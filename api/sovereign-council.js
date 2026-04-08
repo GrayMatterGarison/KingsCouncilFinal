@@ -97,8 +97,12 @@ export default async function handler(req, res) {
   if (!await requireAuth(req, res)) return
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { problem } = req.body
+  const { problem, artifactType } = req.body
   if (!problem?.trim()) return res.status(400).json({ error: 'problem is required' })
+  // artifactType can be explicitly passed ('code_spec', 'sop', 'automation_spec', 'executable_code')
+  // to override AI classification
+  const forcedType = ['code_spec', 'sop', 'automation_spec', 'executable_code'].includes(artifactType)
+    ? artifactType : null
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' })
@@ -207,9 +211,8 @@ Be specific. Name real tools. Do not be vague.`
     // ── PHASE 4: Minister of Knowledge generates the artifact ─────────────────
     send('status', { phase: 'artifact', message: 'Minister of Knowledge generating the process artifact...' })
 
-    // Detect if this is a software build task so we can force the correct type
-    const buildKeywords = /\b(build|create|add|implement|develop|write|generate|make|design|integrate)\b.{0,60}\b(feature|component|api|route|endpoint|page|screen|ui|interface|function|module|service|integration|button|form|modal|dashboard|table|chart|widget|hook|handler|middleware|spec|codebase|app|application)\b/i
-    const isBuildTask = buildKeywords.test(problem)
+    const isBuildTask = forcedType === 'code_spec' ||
+      /\b(build|create|add|implement|develop|write|generate|make|design|integrate)\b.{0,60}\b(feature|component|api|route|endpoint|page|screen|ui|interface|function|module|service|integration|button|form|modal|dashboard|table|chart|widget|hook|handler|middleware|spec|codebase|app|application)\b/i.test(problem)
 
     const artifactSystemPrompt = `You are the Minister of Knowledge. You produce structured artifacts that can be stored and executed without an AI model.
 
@@ -228,14 +231,20 @@ CRITICAL RULES:
 - Use 'executable_code' only for standalone scripts that run outside an existing codebase.
 - Be specific with tool names (e.g. "Make.com", "Python script", "Notion API", "Gmail", "Slack").`
 
+    const typeInstruction = forcedType
+      ? `⚠ TYPE LOCKED BY SOVEREIGN: You MUST output type '${forcedType}'. Do not use any other type. ${forcedType === 'code_spec' ? 'Use FORMAT B.' : 'Use FORMAT A.'}`
+      : isBuildTask
+        ? `⚠ CLASSIFICATION OVERRIDE: This is a SOFTWARE BUILD TASK. You MUST output type 'code_spec' using FORMAT B. Do not output any other type.`
+        : `Choose the correct type (sop/automation_spec/executable_code/code_spec) based on the problem. If the directive is to build or modify software, use 'code_spec' FORMAT B. Otherwise use FORMAT A.`
+
     const artifactUserMessage = `Convert this process architecture into a structured JSON artifact.
 
 ORIGINAL PROBLEM: ${problem}
-${isBuildTask ? '\n⚠ CLASSIFICATION OVERRIDE: The original directive is a SOFTWARE BUILD TASK. You MUST output type \'code_spec\' using FORMAT B. Do not output any other type.\n' : ''}
+
+${typeInstruction}
+
 MASTER BUILDER'S ARCHITECTURE:
 ${synthesisContent}
-
-${isBuildTask ? 'This is a software build task — output type \'code_spec\' using FORMAT B.' : 'If this is a software build task (building features inside a codebase), output type \'code_spec\' using FORMAT B. Otherwise output type sop/automation_spec/executable_code using FORMAT A.'}
 
 FORMAT A — Process artifact (sop / automation_spec / executable_code):
 
