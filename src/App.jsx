@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import CouncilSession from "./CouncilSession"
+import SovereignCouncilSession from "./SovereignCouncilSession"
 
 // ─── PALETTE ────────────────────────────────────────────────────────────────
 const GOLD   = "#D4970C"
@@ -191,6 +192,7 @@ const NAV = [
   { id: "operatives", label: "XXIV OPERATIVES"  },
   { id: "ventures",   label: "VENTURES"         },
   { id: "intel",      label: "INTEL FEED"       },
+  { id: "processes",  label: "PROCESS LIBRARY"  },
 ]
 
 // ─── WRITE PROPOSAL PARSER ───────────────────────────────────────────────────
@@ -710,6 +712,8 @@ export default function App() {
   const [col, setCol]               = useState(false)
   const [sel, setSel]               = useState(null)
   const [councilOp, setCouncilOp]   = useState(null)
+  const [showSovereignCouncil, setShowSovereignCouncil] = useState(false)
+  const [processes, setProcesses]   = useState([])
   const [time, setTime]             = useState(new Date())
   const [escalationCount, setEscalationCount] = useState(0)
 
@@ -731,6 +735,15 @@ export default function App() {
       .then(d => { if (d && Array.isArray(d.results)) setEscalationCount(d.results.length) })
       .catch(() => {})
   }, [])
+
+  const loadProcesses = () => {
+    authFetch("/api/processes")
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setProcesses(d) })
+      .catch(() => {})
+  }
+
+  useEffect(() => { loadProcesses() }, [])
 
   const handleEscalate = async (agent) => {
     try {
@@ -890,6 +903,56 @@ export default function App() {
               </div>
             )}
 
+            {nav === "processes" && (
+              <div>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
+                  <SectionHeader label="PROCESS LIBRARY" count={processes.length} ac={GREEN} sub="Sovereign's Council Artifacts" />
+                  <button
+                    onClick={() => setShowSovereignCouncil(true)}
+                    style={{ padding:"8px 18px", borderRadius:3, background:"rgba(96,200,144,0.1)", border:`1px solid rgba(96,200,144,0.4)`, color:GREEN, ...mono, fontSize:9, cursor:"pointer", letterSpacing:"0.1em", flexShrink:0, marginBottom:14 }}
+                  >
+                    + NEW SESSION
+                  </button>
+                </div>
+                {processes.length === 0 ? (
+                  <div style={{ background:BGCARD, border:`1px solid ${BORDER}`, borderRadius:4, padding:"40px 32px", textAlign:"center" }}>
+                    <div style={{ fontSize:28, marginBottom:12, filter:`drop-shadow(0 0 12px ${GREEN}40)` }}>⚙</div>
+                    <div style={{ ...mono, color:TSUB, fontSize:11, marginBottom:6 }}>NO PROCESSES STORED</div>
+                    <div style={{ ...mono, color:TDIM, fontSize:9, marginBottom:20, lineHeight:1.8 }}>
+                      Convene the Sovereign's Council to think-tank a problem<br />and generate a reusable process artifact.
+                    </div>
+                    <button
+                      onClick={() => setShowSovereignCouncil(true)}
+                      style={{ padding:"9px 24px", borderRadius:3, background:"rgba(96,200,144,0.1)", border:`1px solid rgba(96,200,144,0.4)`, color:GREEN, ...mono, fontSize:10, cursor:"pointer", letterSpacing:"0.12em" }}
+                    >
+                      CONVENE THE COUNCIL
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                    {processes.map(p => {
+                      const typeColors = { sop: GREEN, automation_spec: CYAN, executable_code: AMBER }
+                      const typeLabels = { sop: "SOP", automation_spec: "AUTO", executable_code: "CODE" }
+                      const ac = typeColors[p.type] || GOLD
+                      const label = typeLabels[p.type] || p.type?.toUpperCase()
+                      return (
+                        <div key={p.id} style={{ background:BGCARD, border:`1px solid ${BORDER}`, borderRadius:4, padding:"14px 18px", display:"flex", alignItems:"center", gap:14, position:"relative", overflow:"hidden" }}>
+                          <div style={{ position:"absolute", left:0, top:0, bottom:0, width:2, background:ac }} />
+                          <div style={{ ...mono, fontSize:8, color:ac, border:`1px solid ${ac}40`, padding:"2px 8px", borderRadius:2, flexShrink:0 }}>{label}</div>
+                          <div style={{ flex:1 }}>
+                            <div style={{ ...mono, fontWeight:700, fontSize:12, color:TPRI, marginBottom:3 }}>{p.title}</div>
+                            <div style={{ ...mono, fontSize:8, color:TDIM }}>
+                              {p.domain?.toUpperCase()} · {p.venture} · {new Date(p.created_at).toLocaleDateString("en-US",{ month:"short", day:"numeric", year:"numeric" })}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
           </div>
         </div>
       </div>
@@ -904,6 +967,12 @@ export default function App() {
         />
       )}
       {councilOp && <CouncilSession primaryOperative={councilOp} onClose={() => setCouncilOp(null)} />}
+      {showSovereignCouncil && (
+        <SovereignCouncilSession
+          onClose={() => setShowSovereignCouncil(false)}
+          onStore={() => { loadProcesses(); setNav("processes") }}
+        />
+      )}
       {showWriteLog && <WriteLogModal entries={writeLog} onClose={() => setShowWriteLog(false)} />}
     </>
   )
