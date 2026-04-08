@@ -207,14 +207,18 @@ Be specific. Name real tools. Do not be vague.`
     // ── PHASE 4: Minister of Knowledge generates the artifact ─────────────────
     send('status', { phase: 'artifact', message: 'Minister of Knowledge generating the process artifact...' })
 
-    const artifactSystemPrompt = `You are the Minister of Knowledge. You produce structured process artifacts that can be stored and executed without an AI model.
+    const artifactSystemPrompt = `You are the Minister of Knowledge. You produce structured artifacts that can be stored and executed without an AI model.
 
 CRITICAL RULES:
 - Output ONLY a JSON object wrapped in \`\`\`json ... \`\`\` fences. Nothing else.
 - No preamble, no explanation, no text before or after the JSON block.
-- Choose type: 'sop' for human-executed workflows, 'automation_spec' for no-code platforms (Zapier/Make.com/n8n), 'executable_code' for scripts/API calls. Pick the dominant type if mixed.
-- Every step must have: id, action, owner (human|automated), tool, inputs, outputs.
-- automations: only populate if type is 'automation_spec' or 'executable_code'.
+- Choose the correct type:
+  * 'sop' — human-executed workflows and standard operating procedures
+  * 'automation_spec' — no-code automation (Zapier/Make.com/n8n)
+  * 'executable_code' — scripts, CLI tools, standalone API integrations
+  * 'code_spec' — features to build INSIDE an existing software codebase (React, Node.js, Vercel, etc.)
+- Use 'code_spec' when the directive is about building or modifying software: adding API routes, building UI components, integrating services, modifying existing functionality in a codebase.
+- Use process types (sop/automation/executable_code) for operational and business workflows.
 - Be specific with tool names (e.g. "Make.com", "Python script", "Notion API", "Gmail", "Slack").`
 
     const artifactUserMessage = `Convert this process architecture into a structured JSON artifact.
@@ -224,7 +228,10 @@ ORIGINAL PROBLEM: ${problem}
 MASTER BUILDER'S ARCHITECTURE:
 ${synthesisContent}
 
-Output ONLY the JSON object in this exact format:
+If this is a software build task (building features inside a codebase), output type 'code_spec' using FORMAT B.
+Otherwise output type sop/automation_spec/executable_code using FORMAT A.
+
+FORMAT A — Process artifact (sop / automation_spec / executable_code):
 
 \`\`\`json
 {
@@ -265,9 +272,41 @@ Output ONLY the JSON object in this exact format:
   "estimated_time": "e.g. 2 hours/week",
   "resources": ["required resource or access"]
 }
+\`\`\`
+
+FORMAT B — Code spec artifact (code_spec):
+\`\`\`json
+{
+  "title": "Feature name (5 words max)",
+  "type": "code_spec",
+  "domain": "Technical",
+  "problem": "One sentence: what needs to be built",
+  "tech_stack": ["React", "Node.js", "Vercel"],
+  "files_to_create": [
+    {
+      "path": "api/example.js",
+      "purpose": "What this file does",
+      "implementation": "Detailed description of all functions, logic, API calls, and patterns to follow from existing files",
+      "dependencies": ["./auth.js"]
+    }
+  ],
+  "files_to_modify": [
+    {
+      "path": "src/App.jsx",
+      "change_summary": "Brief: what changes",
+      "specific_changes": ["Specific change 1", "Specific change 2"],
+      "functions_to_modify": ["FunctionName"]
+    }
+  ],
+  "new_env_vars": [
+    { "name": "NEW_VAR", "description": "What it's for" }
+  ],
+  "acceptance_criteria": ["measurable criterion"],
+  "estimated_complexity": "low|medium|high"
+}
 \`\`\``
 
-    const artifactRaw = await callClaude(artifactSystemPrompt, artifactUserMessage, 2500)
+    const artifactRaw = await callClaude(artifactSystemPrompt, artifactUserMessage, 3500)
     const artifactJSON = extractArtifactJSON(artifactRaw)
 
     transcript.push({ phase: 'artifact', agent: 'knowledge', name: AGENTS.knowledge.name, content: artifactRaw })

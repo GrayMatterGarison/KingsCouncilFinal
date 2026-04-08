@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import CouncilSession from "./CouncilSession"
 import SovereignCouncilSession from "./SovereignCouncilSession"
+import RoyalEngineerSession from "./RoyalEngineerSession"
 
 // ─── PALETTE ────────────────────────────────────────────────────────────────
 const GOLD   = "#D4970C"
@@ -713,6 +714,8 @@ export default function App() {
   const [sel, setSel]               = useState(null)
   const [councilOp, setCouncilOp]   = useState(null)
   const [showSovereignCouncil, setShowSovereignCouncil] = useState(false)
+  const [showRoyalEngineer, setShowRoyalEngineer] = useState(false)
+  const [selectedProcess, setSelectedProcess]     = useState(null)
   const [processes, setProcesses]   = useState([])
   const [time, setTime]             = useState(new Date())
   const [escalationCount, setEscalationCount] = useState(0)
@@ -931,10 +934,11 @@ export default function App() {
                 ) : (
                   <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                     {processes.map(p => {
-                      const typeColors = { sop: GREEN, automation_spec: CYAN, executable_code: AMBER }
-                      const typeLabels = { sop: "SOP", automation_spec: "AUTO", executable_code: "CODE" }
+                      const typeColors = { sop: GREEN, automation_spec: CYAN, executable_code: AMBER, code_spec: PURPLE }
+                      const typeLabels = { sop: "SOP", automation_spec: "AUTO", executable_code: "CODE", code_spec: "SPEC" }
                       const ac = typeColors[p.type] || GOLD
                       const label = typeLabels[p.type] || p.type?.toUpperCase()
+                      const isCodeSpec = p.type === "code_spec"
                       return (
                         <div key={p.id} style={{ background:BGCARD, border:`1px solid ${BORDER}`, borderRadius:4, padding:"14px 18px", display:"flex", alignItems:"center", gap:14, position:"relative", overflow:"hidden" }}>
                           <div style={{ position:"absolute", left:0, top:0, bottom:0, width:2, background:ac }} />
@@ -945,6 +949,14 @@ export default function App() {
                               {p.domain?.toUpperCase()} · {p.venture} · {new Date(p.created_at).toLocaleDateString("en-US",{ month:"short", day:"numeric", year:"numeric" })}
                             </div>
                           </div>
+                          {isCodeSpec && (
+                            <button
+                              onClick={() => { setSelectedProcess(p); setShowRoyalEngineer(true) }}
+                              style={{ padding:"6px 14px", borderRadius:3, background:"rgba(136,85,204,0.15)", border:`1px solid ${PURPLE}60`, color:PURPLE, ...mono, fontSize:9, cursor:"pointer", letterSpacing:"0.1em", flexShrink:0 }}
+                            >
+                              BUILD
+                            </button>
+                          )}
                         </div>
                       )
                     })}
@@ -971,6 +983,12 @@ export default function App() {
         <SovereignCouncilSession
           onClose={() => setShowSovereignCouncil(false)}
           onStore={() => { loadProcesses(); setNav("processes") }}
+        />
+      )}
+      {showRoyalEngineer && selectedProcess && (
+        <RoyalEngineerSession
+          process={selectedProcess}
+          onClose={() => { setShowRoyalEngineer(false); setSelectedProcess(null) }}
         />
       )}
       {showWriteLog && <WriteLogModal entries={writeLog} onClose={() => setShowWriteLog(false)} />}
