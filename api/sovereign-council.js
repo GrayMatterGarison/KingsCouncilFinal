@@ -207,6 +207,10 @@ Be specific. Name real tools. Do not be vague.`
     // ── PHASE 4: Minister of Knowledge generates the artifact ─────────────────
     send('status', { phase: 'artifact', message: 'Minister of Knowledge generating the process artifact...' })
 
+    // Detect if this is a software build task so we can force the correct type
+    const buildKeywords = /\b(build|create|add|implement|develop|write|generate|make|design|integrate)\b.{0,60}\b(feature|component|api|route|endpoint|page|screen|ui|interface|function|module|service|integration|button|form|modal|dashboard|table|chart|widget|hook|handler|middleware|spec|codebase|app|application)\b/i
+    const isBuildTask = buildKeywords.test(problem)
+
     const artifactSystemPrompt = `You are the Minister of Knowledge. You produce structured artifacts that can be stored and executed without an AI model.
 
 CRITICAL RULES:
@@ -217,19 +221,21 @@ CRITICAL RULES:
   * 'automation_spec' — no-code automation (Zapier/Make.com/n8n)
   * 'executable_code' — scripts, CLI tools, standalone API integrations
   * 'code_spec' — features to build INSIDE an existing software codebase (React, Node.js, Vercel, etc.)
-- Use 'code_spec' when the directive is about building or modifying software: adding API routes, building UI components, integrating services, modifying existing functionality in a codebase.
-- Use process types (sop/automation/executable_code) for operational and business workflows.
+- Use 'code_spec' when the directive asks to BUILD, CREATE, ADD, IMPLEMENT, or DEVELOP a feature, component, API route, UI element, or any code inside an existing application.
+- NEVER use 'sop' for software build tasks. If someone says "build X", "add X feature", "create X component" — that is ALWAYS 'code_spec'.
+- Use 'sop' only for human-executed business processes (hiring, onboarding, patient intake, etc.).
+- Use 'automation_spec' only for connecting existing tools via no-code platforms.
+- Use 'executable_code' only for standalone scripts that run outside an existing codebase.
 - Be specific with tool names (e.g. "Make.com", "Python script", "Notion API", "Gmail", "Slack").`
 
     const artifactUserMessage = `Convert this process architecture into a structured JSON artifact.
 
 ORIGINAL PROBLEM: ${problem}
-
+${isBuildTask ? '\n⚠ CLASSIFICATION OVERRIDE: The original directive is a SOFTWARE BUILD TASK. You MUST output type \'code_spec\' using FORMAT B. Do not output any other type.\n' : ''}
 MASTER BUILDER'S ARCHITECTURE:
 ${synthesisContent}
 
-If this is a software build task (building features inside a codebase), output type 'code_spec' using FORMAT B.
-Otherwise output type sop/automation_spec/executable_code using FORMAT A.
+${isBuildTask ? 'This is a software build task — output type \'code_spec\' using FORMAT B.' : 'If this is a software build task (building features inside a codebase), output type \'code_spec\' using FORMAT B. Otherwise output type sop/automation_spec/executable_code using FORMAT A.'}
 
 FORMAT A — Process artifact (sop / automation_spec / executable_code):
 
