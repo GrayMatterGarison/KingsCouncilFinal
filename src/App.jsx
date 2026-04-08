@@ -982,7 +982,15 @@ export default function App() {
       {showSovereignCouncil && (
         <SovereignCouncilSession
           onClose={() => setShowSovereignCouncil(false)}
-          onStore={() => { loadProcesses(); setNav("processes") }}
+          onStore={(proc) => {
+            loadProcesses()
+            if (proc?.type === "code_spec") {
+              setSelectedProcess(proc)
+              setShowRoyalEngineer(true)
+            } else {
+              setNav("processes")
+            }
+          }}
         />
       )}
       {showRoyalEngineer && selectedProcess && (

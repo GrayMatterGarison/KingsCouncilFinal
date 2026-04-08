@@ -109,7 +109,7 @@ function FeedCard({ event }) {
 }
 
 // ─── ARTIFACT PANEL ───────────────────────────────────────────────────────────
-function ArtifactPanel({ artifact, onApprove, onReject, storing, stored }) {
+function ArtifactPanel({ artifact, onApprove, onReject, storing, stored, isCodeSpec }) {
   if (!artifact) return (
     <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <div style={{ textAlign: "center" }}>
@@ -260,7 +260,7 @@ function ArtifactPanel({ artifact, onApprove, onReject, storing, stored }) {
               letterSpacing: "0.12em",
             }}
           >
-            {storing ? "STORING..." : "✓ APPROVE & STORE"}
+            {storing ? (isCodeSpec ? "STORING..." : "STORING...") : (isCodeSpec ? "✓ APPROVE & BUILD" : "✓ APPROVE & STORE")}
           </button>
           <button
             onClick={onReject}
@@ -582,6 +582,7 @@ export default function SovereignCouncilSession({ onClose, onStore }) {
             onReject={handleReject}
             storing={storing}
             stored={stored}
+            isCodeSpec={artifact?.content?.type === "code_spec"}
           />
         </div>
 
